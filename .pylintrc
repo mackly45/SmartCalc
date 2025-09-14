@@ -1,0 +1,107 @@
+[MASTER]
+ignore=setup.py
+
+[MESSAGES CONTROL]
+disable=import-error,unused-import,missing-docstring,wrong-import-position,import-outside-toplevel
+
+[FORMAT]
+max-line-length=120
+
+[BASIC]
+# Noms de variables acceptés
+variable-rgx=^(_?[a-z][a-z0-9_]*|__[a-z0-9_]+__|_?[A-Z][a-zA-Z0-9]*)$
+
+# Constantes (en majuscules)
+const-rgx=^(_?[A-Z][A-Z0-9_]*|__[a-z0-9_]+__|_?[A-Z][a-zA-Z0-9]*)$
+
+# Noms de classes
+class-rgx=^[A-Z_][a-zA-Z0-9]+$
+
+# Noms de fonctions
+function-rgx=^[a-z_][a-z0-9_]*$
+
+# Noms de méthodes
+method-rgx=^[a-z_][a-z0-9_]*$
+
+# Noms d'attributs
+attr-rgx=^[a-z_][a-z0-9_]*$
+
+# Arguments de fonction
+argument-rgx=^[a-z_][a-z0-9_]*$
+
+# Variables de classe
+class-attribute-rgx=^[a-z_][a-z0-9_]*$
+
+# Variables d'instance
+instance-attribute-rgx=^[a-z_][a-z0-9_]*$
+
+# Variables de module
+global-rgx=^[a-z_][a-z0-9_]*$
+
+[DESIGN]
+# Nombre maximum d'arguments pour une fonction / méthode
+max-args=8
+
+# Nombre maximum d'attributs pour une classe
+max-attributes=15
+
+# Nombre maximum de méthodes publiques pour une classe
+max-public-methods=30
+
+# Nombre maximum de méthodes locales pour une fonction / méthode
+max-locals=20
+
+# Nombre maximum de retours par fonction / méthode
+max-returns=6
+
+# Nombre maximum de branches par fonction / méthode
+max-branches=15
+
+# Nombre maximum d'instructions dans un module
+max-statements=100
+
+# Nombre maximum de lignes par module
+max-line-length=120
+
+[TYPECHECK]
+# Vérifier si les noms des variables dans la signature correspondent
+check-argument-names=yes
+
+# Vérifier si les variables de classe sont définies avant d'être utilisées
+check-attribute-defined-outside-init=no
+
+# Vérifier si les variables sont définies avant d'être utilisées
+check-undeclared=no
+
+# Vérifier les noms des variables de classe
+check-class-attribute-naming=no
+
+# Vérifier les noms des variables d'instance
+check-instance-attribute-naming=no
+
+# Vérifier les noms des variables de module
+check-variable-names=no
+
+# Vérifier les noms des variables dans la signature
+check-argument-names=no
+
+# Vérifier les noms des variables locales
+check-variable-names=no
+
+# Vérifier les noms des variables globales
+check-global-variables=no
+
+# Vérifier les noms des variables non locales
+check-nonlocal-variables=no
+
+# Vérifier les noms des variables de compréhension
+check-comprehension-variables=no
+
+# Vérifier les noms des variables d'itération
+check-iteration-variables=no
+
+# Vérifier les noms des variables de contexte
+check-context-manager-variables=no
+
+# Vérifier les noms des variables d'exception
+check-exception-variables=no

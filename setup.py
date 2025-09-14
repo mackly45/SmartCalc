@@ -1,5 +1,16 @@
-from setuptools import setup, find_packages
+"""Configuration du package pour l'installation via pip.
 
+Ce module configure les métadonnées et les dépendances du package SmartCalc.
+"""
+
+try:
+    from setuptools import setup, find_packages
+except ImportError:
+    import sys
+    print("Erreur: setuptools n'est pas installé. Veuillez l'installer avec 'pip install setuptools'", file=sys.stderr)
+    sys.exit(1)
+
+# Configuration de l'installation du package
 setup(
     name="smartcalc",
     version="0.1.0",

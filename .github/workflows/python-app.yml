@@ -32,19 +32,8 @@ jobs:
             xvfb \
             libxcb-xinerama0 \
             libxcb-cursor0 \
-            libxcb-icccm4 \
-            libxcb-image0 \
-            libxcb-keysyms1 \
-            libxcb-randr0 \
-            libxcb-render-util0 \
-            libxcb-shape0 \
-            libxcb-xfixes0 \
-            libxcb-xkb1 \
             libglx0 \
-            libopengl0 \
-            libegl1 \
-            libxkbcommon-x11-0 \
-            libxcb-util1
+            libopengl0
     
     - name: Install PyQt6 and dependencies
       run: |
@@ -63,15 +52,32 @@ jobs:
         echo "=== Installing package in development mode ==="
         pip install -e .
     
-    - name: Run basic tests
+    - name: Run basic tests with offscreen plugin
       run: |
-        echo "=== Running Basic Tests ==="
-        export DISPLAY=:99.0
-        Xvfb :99 -screen 0 1024x768x24 > /dev/null 2>&1 &
-        python -c "from PyQt6.QtWidgets import QApplication; app = QApplication([]); print('PyQt6 QApplication created successfully')"
+        echo "=== Running Basic Tests with Offscreen Plugin ==="
+        python -c "import os; os.environ['QT_QPA_PLATFORM'] = 'offscreen'; os.environ['QT_DEBUG_PLUGINS'] = '1'; \
+        from PyQt6.QtWidgets import QApplication; \
+        import PyQt6.QtCore; \
+        print('PyQt6 Qt version:', PyQt6.QtCore.QT_VERSION_STR); \
+        print('Qt plugins path:', PyQt6.QtCore.QLibraryInfo.path(PyQt6.QtCore.QLibraryInfo.LibraryPath.PluginsPath)); \
+        app = QApplication([]); \
+        print('Success: PyQt6 QApplication created with offscreen plugin'); \
+        from smartcalc.controllers.calculator_controller import CalculatorController; \
+        from smartcalc.models.calculator_model import CalculatorModel; \
+        from smartcalc.views.calculator_view import CalculatorView; \
+        print('Success: All main components imported successfully'); \
+        model = CalculatorModel(); \
+        model.current_value = '5'; \
+        model.add_operator('+'); \
+        model.append_number('3'); \
+        model.calculate(); \
+        print(f'Test calculation: 5 + 3 = {model.current_value}'); \
+        app.quit(); \
+        print('All tests completed successfully')"
     
-    - name: Run pytest
+    - name: Run pytest with offscreen plugin
       run: |
-        echo "=== Running pytest ==="
+        echo "=== Running pytest with offscreen plugin ==="
+        export QT_QPA_PLATFORM=offscreen
         pip install pytest pytest-qt
         python -m pytest tests/ -v
