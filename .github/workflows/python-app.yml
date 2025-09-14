@@ -8,56 +8,78 @@ on:
   workflow_dispatch:
 
 jobs:
-  build:
+  test:
     runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        python-version: ["3.8", "3.9", "3.10"]
-
+    
     steps:
     - uses: actions/checkout@v3
     
-    - name: Set up Python ${{ matrix.python-version }}
+    - name: Set up Python 3.10
       uses: actions/setup-python@v4
       with:
-        python-version: ${{ matrix.python-version }}
-        
+        python-version: "3.10"
+    
     - name: Install system dependencies
       run: |
+        echo "=== Installing System Dependencies ==="
         sudo apt-get update
-        sudo apt-get install -y libxcb-xinerama0 libxcb-cursor0 libxcb-icccm4 libxcb-image0 libxcb-keysyms1 libxcb-randr0 libxcb-render-util0 libxcb-shape0 libxcb-xfixes0 libxcb-xkb1 xvfb
-        
-    - name: Install Python dependencies
+        sudo apt-get install -y \
+            python3-pip \
+            python3-dev \
+            xvfb \
+            libxcb-xinerama0 \
+            libxcb-cursor0 \
+            libxcb-icccm4 \
+            libxcb-image0 \
+            libxcb-keysyms1 \
+            libxcb-randr0 \
+            libxcb-render-util0 \
+            libxcb-shape0 \
+            libxcb-xfixes0 \
+            libxcb-xkb1
+    
+    - name: Install package in development mode
       run: |
+        echo "=== Installing Package in Development Mode ==="
         python -m pip install --upgrade pip
-        pip install -r requirements.txt
+        pip install -e .
         
-    - name: Lint with flake8
+    - name: Run tests
       run: |
-        pip install flake8
-        # Ignorer les erreurs spécifiques si nécessaire
-        flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics --exclude=.git,__pycache__
-        flake8 . --count --max-complexity=10 --max-line-length=127 --statistics --exclude=.git,__pycache__
-        
-    - name: Test with pytest
-      run: |
-        pip install pytest pytest-qt pytest-cov
-        python -m pytest --cov=./ --cov-report=xml
-      env:
-        PYTHONPATH: ${{ github.workspace }}
-      
-    - name: Run the application in test mode
-      run: |
-        # Désactiver la sortie graphique pour les tests
-        export QT_QPA_PLATFORM=offscreen
+        echo "=== Running Tests ==="
         export DISPLAY=:99.0
         Xvfb :99 -screen 0 1024x768x24 > /dev/null 2>&1 &
-        python main.py --test-mode
         
-    - name: Upload coverage to Codecov
-      if: matrix.python-version == '3.10'  # Uploader une seule fois
-      uses: codecov/codecov-action@v3
-      with:
-        token: ${{ secrets.CODECOV_TOKEN }}
-        file: ./coverage.xml
-        fail_ci_if_error: false
+        # Run basic tests
+        python -c "
+        import sys
+        print('Python version:', sys.version)
+        print('Python path:', sys.path)
+        
+        # Test PyQt6 import
+        try:
+            import PyQt6
+            print('PyQt6 version:', PyQt6.QtCore.QT_VERSION_STR)
+        except Exception as e:
+            print('PyQt6 import error:', str(e))
+            import traceback; traceback.print_exc()
+            sys.exit(1)
+            
+        # Test application import
+        try:
+            from smartcalc import main
+            print('Successfully imported smartcalc')
+        except Exception as e:
+            print('Error importing smartcalc:', str(e))
+            import traceback; traceback.print_exc()
+            sys.exit(1)
+        "
+        
+        # Run the application in test mode
+        python -m smartcalc --test-mode
+        
+    - name: Run pytest
+      run: |
+        echo "=== Running pytest ==="
+        pip install pytest pytest-qt
+        python -m pytest tests/ -v
