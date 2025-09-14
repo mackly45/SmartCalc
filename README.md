@@ -1,16 +1,31 @@
 # SmartCalc - Calculatrice Scientifique
 
-Une calculatrice scientifique moderne développée avec Python et PyQt6, dotée d'une interface élégante et d'animations fluides.
+Une calculatrice scientifique moderne développée avec Python et PyQt6, dotée d'une interface élégante et de fonctionnalités avancées.
 
 ## Fonctionnalités
 
-- Interface utilisateur moderne et élégante avec des animations fluides
-- Écran de chargement avec logo
-- Opérations arithmétiques de base (+, -, ×, ÷)
-- Calculs de pourcentage
+### Calculatrice de base
+- Opérations arithmétiques (+, -, ×, ÷)
+- Calculs de pourcentage (%)
 - Inversion de signe (±)
-- Fonction d'effacement
+- Fonction d'effacement (C)
 - Affichage de l'expression
+
+### Calculatrice Scientifique
+- **Fonctions trigonométriques** : sin, cos, tan, asin, acos, atan
+- **Fonctions hyperboliques** : sinh, cosh, tanh, asinh, acosh, atanh
+- **Logarithmes et exponentielles** : log, ln, exp, 10^x, e^x
+- **Racines** : carrée (√), cubique
+- **Constantes** : π, e, φ, γ
+- **Mémoire** : M+, M-, MR, MC
+- **Modes d'angle** : Degrés, Radians, Grades
+- **Notation** : Standard, Scientifique, Ingénieur
+
+### Convertisseur de devises
+- Support de plus de 15 devises
+- Mise à jour automatique des taux de change
+- Mode hors ligne avec mise en cache
+- Conversion en temps réel
 
 ## Installation
 
@@ -24,38 +39,51 @@ pip install -r requirements.txt
 
 ## Lancement de l'application
 
-Pour démarrer la calculatrice, exécutez :
-
 ```bash
 python main.py
 ```
 
 ## Structure du projet
 
-```plaintext
+```
 SmartCalc/
 ├── assets/                 # Ressources graphiques
-│   └── images/             # Fichiers images (logo.png doit être placé ici)
-├── controllers/            # Classes contrôleurs
-│   └── calculator_controller.py
+│   └── images/             # Fichiers images
+├── controllers/            # Contrôleurs
+│   ├── calculator_controller.py
+│   ├── currency_controller.py
+│   └── scientific_controller.py
 ├── models/                 # Modèles de données
-│   └── calculator_model.py
-├── views/                 # Composants d'interface
-│   ├── __init__.py
-│   └── calculator_view.py
-├── main.py                # Point d'entrée de l'application
-├── requirements.txt       # Dépendances Python
-└── README.md              # Ce fichier
+│   ├── calculator_model.py
+│   ├── currency_model.py
+│   └── scientific_model.py
+├── views/                  # Vues
+│   ├── calculator_view.py
+│   ├── currency_view.py
+│   ├── scientific_view.py
+│   └── __init__.py
+├── main.py                 # Point d'entrée
+└── README.md               # Ce fichier
 ```
 
-## Ajout d'images personnalisées pour les boutons
+## Utilisation
 
-Pour ajouter des images personnalisées pour les boutons numériques (0-9) :
+### Calculatrice Scientifique
+1. Sélectionnez le mode d'angle (DEG/RAD/GRAD) dans le menu déroulant
+2. Utilisez les boutons ou le clavier pour entrer votre expression
+3. Appuyez sur = pour évaluer l'expression
 
-1. Placez vos fichiers image dans le répertoire `assets/images/`
-2. Nommez-les `0.png`, `1.png`, ..., `9.png`
-3. Les images seront automatiquement chargées et affichées sur les boutons correspondants
+### Convertisseur de devises
+1. Entrez le montant à convertir
+2. Sélectionnez les devises source et cible
+3. Le résultat est affiché automatiquement
+
+## Dépendances
+
+- Python 3.8+
+- PyQt6
+- requests (pour le convertisseur de devises)
 
 ## Licence
 
-Ce projet est open source et disponible sous licence [MIT](LICENSE).
+Ce projet est sous licence MIT. Voir le fichier [LICENSE](LICENSE) pour plus de détails.

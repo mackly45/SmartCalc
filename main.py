@@ -8,14 +8,17 @@ from PyQt6.QtCore import Qt, QTimer, QSize
 # Import des vues
 from views.calculator_view import CalculatorView
 from views.currency_view import CurrencyView
+from views.scientific_view import ScientificView
 
 # Import des modèles
 from models.calculator_model import CalculatorModel
 from models.currency_model import CurrencyModel
+from models.scientific_model import ScientificCalculatorModel
 
 # Import des contrôleurs
 from controllers.calculator_controller import CalculatorController
 from controllers.currency_controller import CurrencyController
+from controllers.scientific_controller import ScientificController
 
 class LoadingScreen(QMainWindow):
     def __init__(self):
@@ -135,16 +138,18 @@ class MainWindow(QMainWindow):
         menu = navbar.addMenu("☰")
         
         # Actions du menu
-        calculator_action = menu.addAction("Calculatrice")
+        calculator_action = menu.addAction("Calculatrice de base")
+        scientific_action = menu.addAction("Calculatrice scientifique")
         currency_action = menu.addAction("Convertisseur de devises")
         
         # Connexion des actions
         calculator_action.triggered.connect(self.show_calculator)
+        scientific_action.triggered.connect(self.show_scientific_calculator)
         currency_action.triggered.connect(self.show_currency_converter)
     
     def setup_views(self):
         """Initialise toutes les vues de l'application"""
-        # Vue de la calculatrice
+        # Vue de la calculatrice de base
         self.calculator_model = CalculatorModel()
         self.calculator_view = CalculatorView()
         self.calculator_controller = CalculatorController(
@@ -160,25 +165,41 @@ class MainWindow(QMainWindow):
             self.currency_view
         )
         
+        # Vue de la calculatrice scientifique
+        self.scientific_model = ScientificCalculatorModel()
+        self.scientific_view = ScientificView()
+        self.scientific_controller = ScientificController(
+            self.scientific_model,
+            self.scientific_view
+        )
+        
         # Ajout des vues au widget empilé
         self.stacked_widget.addWidget(self.calculator_view)
+        self.stacked_widget.addWidget(self.scientific_view)
         self.stacked_widget.addWidget(self.currency_view)
     
     def show_calculator(self):
-        """Affiche la vue de la calculatrice"""
-        self.setWindowTitle("SmartCalc - Calculatrice")
+        """Affiche la vue de la calculatrice de base"""
+        self.setWindowTitle("SmartCalc - Calculatrice de base")
         self.stacked_widget.setCurrentIndex(0)
+    
+    def show_scientific_calculator(self):
+        """Affiche la vue de la calculatrice scientifique"""
+        self.setWindowTitle("SmartCalc - Calculatrice scientifique")
+        self.stacked_widget.setCurrentIndex(1)
     
     def show_currency_converter(self):
         """Affiche le convertisseur de devises"""
         self.setWindowTitle("SmartCalc - Convertisseur de devises")
-        self.stacked_widget.setCurrentIndex(1)
+        self.stacked_widget.setCurrentIndex(2)
     
     def closeEvent(self, event):
         """Gère la fermeture de l'application"""
         # Nettoyage des contrôleurs
         if hasattr(self, 'currency_controller'):
             self.currency_controller.cleanup()
+        if hasattr(self, 'scientific_controller'):
+            self.scientific_controller.cleanup()
         event.accept()
 
 def main():
