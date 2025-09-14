@@ -701,6 +701,9 @@ Racines (f(x) = 0):
     def update_factorization_demo(self, expr, factored):
         """Met à jour la démonstration pour la factorisation"""
         try:
+            # Définir le symbole x au début de la méthode
+            x = sp.Symbol('x')
+            
             demo_text = f"Étapes de factorisation pour {sp.latex(expr)}:\n\n"
             
             # Si l'expression est déjà factorisée
