@@ -30,7 +30,6 @@ class ScientificController(QObject):
         self.view.function_pressed.connect(self.handle_function)
         self.view.memory_operation.connect(self.handle_memory_operation)
         self.view.statistics_operation.connect(self.handle_statistics)
-        self.view.history_operation.connect(self.handle_history_operation)
         
         # Mise à jour du mode d'angle quand il change
         self.view.angle_mode.currentTextChanged.connect(self.update_angle_mode)
@@ -40,6 +39,10 @@ class ScientificController(QObject):
         # Définir le mode d'angle actuel
         self.view.angle_mode.setCurrentText(self.model.settings['angle_mode'])
         
+        # Initialiser les points de données
+        if not hasattr(self.view, 'data_points'):
+            self.view.data_points = []
+            
         # Mettre à jour l'affichage de la mémoire
         self.view.update_memory_display(self.model.memory)
     
@@ -171,6 +174,10 @@ class ScientificController(QObject):
             Résultat de l'opération ou None en cas d'erreur
         """
         try:
+            # S'assurer que data_points existe
+            if not hasattr(self.view, 'data_points'):
+                self.view.data_points = []
+                
             if operation == 'add' and data is not None:
                 # Convertir les données en liste de nombres
                 if isinstance(data, str):
@@ -185,7 +192,7 @@ class ScientificController(QObject):
                 return True
                 
             elif operation == 'calculate':
-                if not self.view.data_points:
+                if not hasattr(self.view, 'data_points') or not self.view.data_points:
                     return None
                     
                 results = {
@@ -206,42 +213,6 @@ class ScientificController(QObject):
             print(f"Erreur lors du traitement statistique: {e}")
             return None
     
-    def handle_history_operation(self, operation, data=None):
-        """
-        Gère les opérations sur l'historique
-        
-        Args:
-            operation: L'opération à effectuer ('clear', 'export', 'delete', 'get')
-            data: Données supplémentaires pour l'opération
-            
-        Returns:
-            Résultat de l'opération ou None en cas d'erreur
-        """
-        try:
-            if operation == 'clear':
-                self.model.clear_history()
-                return True
-                
-            elif operation == 'export':
-                if not data:
-                    return False
-                return self.model.save_history_to_file(data)
-                
-            elif operation == 'delete':
-                if not isinstance(data, int) or data < 0 or data >= len(self.model.history):
-                    return False
-                del self.model.history[data]
-                return True
-                
-            elif operation == 'get':
-                if data is None:
-                    return self.model.get_history()
-                return self.model.get_history(limit=data)
-                
-        except Exception as e:
-            print(f"Erreur lors de l'opération sur l'historique: {e}")
-            return None
-    
     def update_angle_mode(self, mode):
         """
         Met à jour le mode d'angle (degrés, radians, grades).
@@ -257,37 +228,68 @@ class ScientificController(QObject):
     
     def update_statistics_display(self):
         """Met à jour l'affichage des statistiques"""
-        if not hasattr(self.view, 'data_points') or not self.view.data_points:
-            self.view.mean_label.setText("-")
-            self.view.median_label.setText("-")
-            self.view.mode_label.setText("-")
-            self.view.std_dev_label.setText("-")
-            self.view.variance_label.setText("-")
-            return
-            
         try:
-            # Calculer les statistiques
-            mean = self.model.calculate_mean(self.view.data_points)
-            median = self.model.calculate_median(self.view.data_points)
-            mode = self.model.calculate_mode(self.view.data_points)
-            std_dev = self.model.calculate_std_dev(self.view.data_points)
-            variance = self.model.calculate_variance(self.view.data_points)
-            
-            # Mettre à jour l'interface
-            self.view.mean_label.setText(f"{mean:.4f}")
-            self.view.median_label.setText(f"{median:.4f}")
-            
-            if isinstance(mode, list):
-                self.view.mode_label.setText(", ".join(f"{m:.4f}" for m in mode))
-            else:
-                self.view.mode_label.setText(f"{mode:.4f}")
+            # Vérifier que les labels existent
+            if not all(hasattr(self.view, label) for label in ['mean_label', 'median_label', 'mode_label', 'std_dev_label', 'variance_label']):
+                return
                 
-            self.view.std_dev_label.setText(f"{std_dev:.4f}")
-            self.view.variance_label.setText(f"{variance:.4f}")
+            # Vérifier que data_points existe et n'est pas vide
+            if not hasattr(self.view, 'data_points') or not self.view.data_points:
+                self.view.mean_label.setText("-")
+                self.view.median_label.setText("-")
+                self.view.mode_label.setText("-")
+                self.view.std_dev_label.setText("-")
+                self.view.variance_label.setText("-")
+                return
             
+            try:
+                # Calculer les statistiques
+                mean = self.model.calculate_mean(self.view.data_points)
+                median = self.model.calculate_median(self.view.data_points)
+                mode = self.model.calculate_mode(self.view.data_points)
+                std_dev = self.model.calculate_std_dev(self.view.data_points)
+                variance = self.model.calculate_variance(self.view.data_points)
+                
+                # Mettre à jour l'interface
+                self.view.mean_label.setText(f"{mean:.4f}")
+                self.view.median_label.setText(f"{median:.4f}")
+                
+                if isinstance(mode, list):
+                    self.view.mode_label.setText(", ".join(f"{m:.4f}" for m in mode))
+                else:
+                    self.view.mode_label.setText(f"{mode:.4f}")
+                    
+                self.view.std_dev_label.setText(f"{std_dev:.4f}")
+                self.view.variance_label.setText(f"{variance:.4f}")
+                
+            except Exception as calc_error:
+                print(f"Erreur lors du calcul des statistiques: {calc_error}")
+                self.view.mean_label.setText("Erreur")
+                self.view.median_label.setText("Erreur")
+                self.view.mode_label.setText("Erreur")
+                self.view.std_dev_label.setText("Erreur")
+                self.view.variance_label.setText("Erreur")
+                
         except Exception as e:
-            print(f"Erreur lors de la mise à jour de l'affichage: {e}")
+            print(f"Erreur inattendue dans update_statistics_display: {e}")
     
     def cleanup(self):
         """Nettoie les ressources utilisées par le contrôleur"""
-        pass
+        # Nettoyer les connexions de signaux
+        try:
+            if hasattr(self.view, 'expression_evaluated'):
+                self.view.expression_evaluated.disconnect()
+            if hasattr(self.view, 'function_pressed'):
+                self.view.function_pressed.disconnect()
+            if hasattr(self.view, 'memory_operation'):
+                self.view.memory_operation.disconnect()
+            if hasattr(self.view, 'statistics_operation'):
+                self.view.statistics_operation.disconnect()
+            if hasattr(self.view, 'angle_mode') and hasattr(self.view.angle_mode, 'currentTextChanged'):
+                self.view.angle_mode.currentTextChanged.disconnect()
+        except Exception as e:
+            print(f"Erreur lors du nettoyage des connexions: {e}")
+        
+        # Nettoyer les références
+        self.model = None
+        self.view = None

@@ -1,7 +1,7 @@
 import sys
 import time
 from PyQt6.QtWidgets import (QApplication, QMainWindow, QWidget, QVBoxLayout, 
-                             QLabel, QStackedWidget, QHBoxLayout, QPushButton)
+                             QLabel, QStackedWidget, QHBoxLayout, QPushButton, QTabWidget, QStatusBar)
 from PyQt6.QtGui import QPixmap, QFont
 from PyQt6.QtCore import Qt, QTimer, QSize
 
@@ -9,16 +9,19 @@ from PyQt6.QtCore import Qt, QTimer, QSize
 from views.calculator_view import CalculatorView
 from views.currency_view import CurrencyView
 from views.scientific_view import ScientificView
+from views.advanced_view import AdvancedView
 
 # Import des modèles
 from models.calculator_model import CalculatorModel
 from models.currency_model import CurrencyModel
 from models.scientific_model import ScientificCalculatorModel
+from models.advanced_model import AdvancedCalculatorModel
 
 # Import des contrôleurs
 from controllers.calculator_controller import CalculatorController
 from controllers.currency_controller import CurrencyController
 from controllers.scientific_controller import ScientificController
+from controllers.advanced_controller import AdvancedController
 
 class LoadingScreen(QMainWindow):
     def __init__(self):
@@ -93,113 +96,112 @@ class LoadingScreen(QMainWindow):
 class MainWindow(QMainWindow):
     def __init__(self):
         super().__init__()
-        
-        # Configuration de la fenêtre principale
-        self.setWindowTitle("SmartCalc")
-        self.setMinimumSize(800, 600)
-        
-        # Création du widget empilé pour gérer les différentes vues
-        self.stacked_widget = QStackedWidget()
-        self.setCentralWidget(self.stacked_widget)
-        
-        # Création de la barre de navigation
-        self.setup_navbar()
-        
-        # Initialisation des vues
-        self.setup_views()
-        
-        # Afficher la vue par défaut
-        self.show_calculator()
+        self.setup_ui()
+        self.setup_controllers()
     
-    def setup_navbar(self):
-        """Configure la barre de navigation"""
-        navbar = self.menuBar()
-        navbar.setStyleSheet("""
-            QMenuBar {
-                background-color: #1e1e2e;
+    def setup_ui(self):
+        """Configure l'interface utilisateur"""
+        self.setWindowTitle("SmartCalc - Calculatrice Scientifique")
+        self.setMinimumSize(1000, 800)
+        
+        # Création du widget central et du layout
+        central_widget = QWidget()
+        self.setCentralWidget(central_widget)
+        
+        # Layout principal
+        main_layout = QVBoxLayout(central_widget)
+        main_layout.setContentsMargins(10, 10, 10, 10)
+        main_layout.setSpacing(10)
+        
+        # Barre d'onglets
+        self.tab_widget = QTabWidget()
+        self.tab_widget.setStyleSheet("""
+            QTabBar::tab {
+                padding: 8px 15px;
+                background: #313244;
                 color: #cdd6f4;
-                padding: 5px;
-                border: none;
+                border-top-left-radius: 4px;
+                border-top-right-radius: 4px;
+                margin-right: 2px;
             }
-            QMenuBar::item {
-                padding: 5px 10px;
-                background: transparent;
-                border-radius: 4px;
-            }
-            QMenuBar::item:selected {
+            QTabBar::tab:selected {
                 background: #45475a;
+                border-bottom: 2px solid #89b4fa;
             }
-            QMenuBar::item:pressed {
+            QTabBar::tab:hover:!selected {
                 background: #585b70;
+            }
+            QTabWidget::pane {
+                border: 1px solid #45475a;
+                border-radius: 4px;
+                background: #1e1e2e;
             }
         """)
         
-        # Menu principal
-        menu = navbar.addMenu("☰")
-        
-        # Actions du menu
-        calculator_action = menu.addAction("Calculatrice de base")
-        scientific_action = menu.addAction("Calculatrice scientifique")
-        currency_action = menu.addAction("Convertisseur de devises")
-        
-        # Connexion des actions
-        calculator_action.triggered.connect(self.show_calculator)
-        scientific_action.triggered.connect(self.show_scientific_calculator)
-        currency_action.triggered.connect(self.show_currency_converter)
-    
-    def setup_views(self):
-        """Initialise toutes les vues de l'application"""
-        # Vue de la calculatrice de base
-        self.calculator_model = CalculatorModel()
+        # Création des onglets
         self.calculator_view = CalculatorView()
-        self.calculator_controller = CalculatorController(
-            self.calculator_model, 
-            self.calculator_view
-        )
-        
-        # Vue du convertisseur de devises
-        self.currency_model = CurrencyModel()
-        self.currency_view = CurrencyView()
-        self.currency_controller = CurrencyController(
-            self.currency_model,
-            self.currency_view
-        )
-        
-        # Vue de la calculatrice scientifique
-        self.scientific_model = ScientificCalculatorModel()
         self.scientific_view = ScientificView()
-        self.scientific_controller = ScientificController(
-            self.scientific_model,
-            self.scientific_view
-        )
+        self.currency_view = CurrencyView()
+        self.advanced_view = AdvancedView()
         
-        # Ajout des vues au widget empilé
-        self.stacked_widget.addWidget(self.calculator_view)
-        self.stacked_widget.addWidget(self.scientific_view)
-        self.stacked_widget.addWidget(self.currency_view)
+        # Ajout des onglets
+        self.tab_widget.addTab(self.calculator_view, "Calculatrice")
+        self.tab_widget.addTab(self.scientific_view, "Scientifique")
+        self.tab_widget.addTab(self.currency_view, "Devises")
+        self.tab_widget.addTab(self.advanced_view, "Avancé")
+        
+        # Ajout du widget d'onglets au layout principal
+        main_layout.addWidget(self.tab_widget)
+        
+        # Barre d'état
+        self.status_bar = QStatusBar()
+        self.setStatusBar(self.status_bar)
+        self.status_bar.showMessage("Prêt")
     
-    def show_calculator(self):
-        """Affiche la vue de la calculatrice de base"""
-        self.setWindowTitle("SmartCalc - Calculatrice de base")
-        self.stacked_widget.setCurrentIndex(0)
+    def setup_controllers(self):
+        """Initialise les contrôleurs"""
+        # Modèles
+        calculator_model = CalculatorModel()
+        currency_model = CurrencyModel()
+        scientific_model = ScientificCalculatorModel()
+        advanced_model = AdvancedCalculatorModel()
+        
+        # Contrôleurs
+        self.calculator_controller = CalculatorController(calculator_model, self.calculator_view)
+        self.currency_controller = CurrencyController(currency_model, self.currency_view)
+        self.scientific_controller = ScientificController(scientific_model, self.scientific_view)
+        self.advanced_controller = AdvancedController(advanced_model, self.advanced_view)
+        
+        # Connexion des signaux
+        self.tab_widget.currentChanged.connect(self.on_tab_changed)
     
-    def show_scientific_calculator(self):
-        """Affiche la vue de la calculatrice scientifique"""
-        self.setWindowTitle("SmartCalc - Calculatrice scientifique")
-        self.stacked_widget.setCurrentIndex(1)
-    
-    def show_currency_converter(self):
-        """Affiche le convertisseur de devises"""
-        self.setWindowTitle("SmartCalc - Convertisseur de devises")
-        self.stacked_widget.setCurrentIndex(2)
+    def on_tab_changed(self, index):
+        """Appelé lors du changement d'onglet"""
+        current_tab = self.tab_widget.currentWidget()
+        if current_tab == self.currency_view:
+            self.currency_controller.initialize_ui()
+        elif current_tab == self.scientific_view:
+            self.scientific_controller.initialize_ui()
+        elif current_tab == self.advanced_view:
+            self.advanced_controller.initialize_ui()
     
     def closeEvent(self, event):
         """Gère la fermeture de l'application"""
-        # Nettoyage des contrôleurs
+        # Sauvegarde des données si nécessaire
         if hasattr(self, 'currency_controller'):
-            self.currency_controller.cleanup()
+            self.currency_controller.save_data()
+        
+        # Nettoyage des contrôleurs
+        if hasattr(self, 'calculator_controller'):
+            self.calculator_controller.cleanup()
+            
         if hasattr(self, 'scientific_controller'):
             self.scientific_controller.cleanup()
+            
+        if hasattr(self, 'advanced_controller'):
+            self.advanced_controller.cleanup()
+            
+        # Fermeture propre de l'application
         event.accept()
 
 def main():

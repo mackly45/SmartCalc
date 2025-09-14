@@ -42,3 +42,13 @@ class CalculatorController:
         """Update the view with the current model state"""
         self.view.update_display(self.model.current_value)
         self.view.update_expression(self.model.expression.replace('*', '×').replace('/', '÷'))
+
+    def initialize_ui(self):
+        """Initialise l'interface utilisateur avec les données du modèle"""
+        # Mise à jour initiale de l'affichage
+        self.update_display()
+
+    def cleanup(self):
+        """Nettoie les ressources"""
+        # Nettoyage des ressources si nécessaire
+        pass

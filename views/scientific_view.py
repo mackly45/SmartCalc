@@ -772,6 +772,7 @@ class ScientificView(QWidget):
     
     def clear_data_points(self):
         """Efface tous les points de données"""
+        self.data_points = []  # Réinitialiser la liste des points de données
         self.statistics_operation.emit('clear', None)
         if hasattr(self, 'controller'):
             self.controller.update_statistics_display()
