@@ -35,7 +35,6 @@ jobs:
             libopengl0 \
             libegl1 \
             libgl1-mesa-dri \
-            libgl1-mesa-gl \
             libgles2 \
             libglu1-mesa \
             libxcb-xinerama0 \
