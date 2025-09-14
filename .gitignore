@@ -1,0 +1,96 @@
+# Fichiers Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+share/python-wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# Environnements virtuels
+venv/
+env/
+ENV/
+
+# Fichiers de configuration locaux
+.env
+.venv
+env.bak/
+venv.bak/
+
+# Fichiers de cache
+.cache
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Fichiers système
+.DS_Store
+Thumbs.db
+
+# Fichiers de l'éditeur
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# Fichiers de débogage
+*.log
+
+# Fichiers de données locaux
+*.db
+*.sqlite3
+
+# Fichiers de cache de PyQt
+*.pyc
+*.pyo
+*.pyd
+
+# Fichiers de cache de matplotlib
+.matplotlib/
+
+# Fichiers de cache de Jupyter Notebook
+.ipynb_checkpoints
+
+# Fichiers de cache de VS Code
+.vscode/
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/extensions.json
+
+# Fichiers de cache de PyCharm
+.idea/
+.idea_modules/
+
+# Fichiers de cache de macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# Fichiers de cache Windows
+Thumbs.db
+ehthumbs.db
+ehthumbs_vista.db
+
+# Fichiers de cache Linux
+*~
+.fuse_hidden*
+.directory
+.Trash-*
+.nfs*

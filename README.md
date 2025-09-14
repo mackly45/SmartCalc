@@ -1,89 +1,79 @@
 # SmartCalc - Calculatrice Scientifique
 
-Une calculatrice scientifique moderne développée avec Python et PyQt6, dotée d'une interface élégante et de fonctionnalités avancées.
+Une calculatrice scientifique avancée développée avec Python et PyQt6, offrant des fonctionnalités de calcul scientifique, de conversion de devises et d'analyse mathématique avancée.
 
 ## Fonctionnalités
 
-### Calculatrice de base
-- Opérations arithmétiques (+, -, ×, ÷)
-- Calculs de pourcentage (%)
-- Inversion de signe (±)
-- Fonction d'effacement (C)
-- Affichage de l'expression
+- **Calculatrice standard** : Opérations mathématiques de base
+- **Calculatrice scientifique** : Fonctions trigonométriques, logarithmiques, etc.
+- **Convertisseur de devises** : Mise à jour automatique des taux de change
+- **Outils avancés** : 
+  - Tracé de fonctions mathématiques
+  - Calculs matriciels
+  - Factorisation d'expressions algébriques
+  - Analyse de fonctions
 
-### Calculatrice Scientifique
-- **Fonctions trigonométriques** : sin, cos, tan, asin, acos, atan
-- **Fonctions hyperboliques** : sinh, cosh, tanh, asinh, acosh, atanh
-- **Logarithmes et exponentielles** : log, ln, exp, 10^x, e^x
-- **Racines** : carrée (√), cubique
-- **Constantes** : π, e, φ, γ
-- **Mémoire** : M+, M-, MR, MC
-- **Modes d'angle** : Degrés, Radians, Grades
-- **Notation** : Standard, Scientifique, Ingénieur
+## Prérequis
 
-### Convertisseur de devises
-- Support de plus de 15 devises
-- Mise à jour automatique des taux de change
-- Mode hors ligne avec mise en cache
-- Conversion en temps réel
+- Python 3.8 ou supérieur
+- Les dépendances listées dans `requirements.txt`
 
 ## Installation
 
-1. Assurez-vous d'avoir Python 3.8 ou une version supérieure installé
-2. Clonez ce dépôt
-3. Installez les dépendances requises :
+1. Clonez le dépôt :
+   ```bash
+   git clone https://github.com/votre-utilisateur/SmartCalc.git
+   cd SmartCalc
+   ```
 
-```bash
-pip install -r requirements.txt
-```
+2. Créez un environnement virtuel (recommandé) :
+   ```bash
+   python -m venv venv
+   source venv/bin/activate  # Sur Linux/Mac
+   # OU
+   .\venv\Scripts\activate  # Sur Windows
+   ```
 
-## Lancement de l'application
+3. Installez les dépendances :
+   ```bash
+   pip install -r requirements.txt
+   ```
+
+## Utilisation
+
+Lancez l'application avec :
 
 ```bash
 python main.py
 ```
 
-## Structure du projet
+### Mode test
 
-```
-SmartCalc/
-├── assets/                 # Ressources graphiques
-│   └── images/             # Fichiers images
-├── controllers/            # Contrôleurs
-│   ├── calculator_controller.py
-│   ├── currency_controller.py
-│   └── scientific_controller.py
-├── models/                 # Modèles de données
-│   ├── calculator_model.py
-│   ├── currency_model.py
-│   └── scientific_model.py
-├── views/                  # Vues
-│   ├── calculator_view.py
-│   ├── currency_view.py
-│   ├── scientific_view.py
-│   └── __init__.py
-├── main.py                 # Point d'entrée
-└── README.md               # Ce fichier
+Pour exécuter l'application en mode test (sans interface graphique) :
+
+```bash
+python main.py --test-mode
 ```
 
-## Utilisation
+## Développement
 
-### Calculatrice Scientifique
-1. Sélectionnez le mode d'angle (DEG/RAD/GRAD) dans le menu déroulant
-2. Utilisez les boutons ou le clavier pour entrer votre expression
-3. Appuyez sur = pour évaluer l'expression
+### Exécuter les tests
 
-### Convertisseur de devises
-1. Entrez le montant à convertir
-2. Sélectionnez les devises source et cible
-3. Le résultat est affiché automatiquement
+```bash
+pytest
+```
 
-## Dépendances
+### Vérifier la qualité du code
 
-- Python 3.8+
-- PyQt6
-- requests (pour le convertisseur de devises)
+```bash
+flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics
+flake8 . --count --max-complexity=10 --max-line-length=127 --statistics
+```
+
+## Contribution
+
+Les contributions sont les bienvenues ! N'hésitez pas à ouvrir une issue ou une pull request.
 
 ## Licence
 
-Ce projet est sous licence MIT. Voir le fichier [LICENSE](LICENSE) pour plus de détails.
+Ce projet est sous licence MIT. Voir le fichier `LICENSE` pour plus de détails.

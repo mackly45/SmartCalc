@@ -1,7 +1,7 @@
 import sys
 import time
 from PyQt6.QtWidgets import (QApplication, QMainWindow, QWidget, QVBoxLayout, 
-                             QLabel, QStackedWidget, QHBoxLayout, QPushButton, QTabWidget, QStatusBar)
+                             QLabel, QStackedWidget, QHBoxLayout, QPushButton, QTabWidget, QStatusBar, QMessageBox)
 from PyQt6.QtGui import QPixmap, QFont
 from PyQt6.QtCore import Qt, QTimer, QSize
 
@@ -22,6 +22,13 @@ from controllers.calculator_controller import CalculatorController
 from controllers.currency_controller import CurrencyController
 from controllers.scientific_controller import ScientificController
 from controllers.advanced_controller import AdvancedController
+
+import argparse
+
+def parse_arguments():
+    parser = argparse.ArgumentParser(description='SmartCalc - Une calculatrice scientifique avancée')
+    parser.add_argument('--test-mode', action='store_true', help='Exécute l\'application en mode test sans interface graphique')
+    return parser.parse_args()
 
 class LoadingScreen(QMainWindow):
     def __init__(self):
@@ -205,6 +212,14 @@ class MainWindow(QMainWindow):
         event.accept()
 
 def main():
+    # Parser les arguments en ligne de commande
+    args = parse_arguments()
+    
+    if args.test_mode:
+        print("Exécution en mode test - L'interface graphique ne sera pas affichée")
+        # Ici, vous pouvez ajouter des tests automatisés
+        return 0
+        
     app = QApplication(sys.argv)
     
     # Appliquer un style sombre à toute l'application
@@ -250,12 +265,14 @@ def main():
     main_window = MainWindow()
     
     # Simuler un temps de chargement
-    QTimer.singleShot(2000, lambda: [
-        loading_screen.close(),
-        main_window.showMaximized()
-    ])
+    QTimer.singleShot(2000, lambda: show_main_app(loading_screen, main_window))
     
     sys.exit(app.exec())
+
+def show_main_app(loading_screen, main_window):
+    """Affiche l'application principale après le chargement"""
+    main_window.showMaximized()
+    loading_screen.close()
 
 if __name__ == "__main__":
     main()
