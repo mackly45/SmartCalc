@@ -21,29 +21,30 @@ class CalculatorModel:
         if not self.expression and not self.current_value:
             return
             
-        if not self.expression:
-            self.expression = self.current_value if self.current_value else '0'
-        
-        # If we just pressed an operator, replace the last one
-        if self.waiting_for_operand and self.expression and self.expression[-1] in '+-×÷':
-            self.expression = self.expression[:-1] + operator
-        else:
-            if not self.waiting_for_operand:
-                self.expression += self.current_value
-            self.expression += operator
+        # If we're starting a new expression, use the current value
+        if not self.expression and self.current_value:
+            self.expression = self.current_value
+        # If we already have an expression and a current value, append it
+        elif not self.waiting_for_operand and self.current_value:
+            self.expression += self.current_value
+        # If we're replacing an operator, remove the last one
+        elif self.waiting_for_operand and self.expression and self.expression[-1] in '+-×÷':
+            self.expression = self.expression[:-1]
             
+        # Add the new operator
+        self.expression += operator
         self.waiting_for_operand = True
         self.current_value = ''
 
     def calculate(self):
-        if not self.expression:
+        if not self.expression and not self.current_value:
             return
             
         try:
-            # Add the current value to the expression if there isn't already an operator at the end
-            if self.current_value and (not self.expression or self.expression[-1] not in '+-×÷'):
+            # Build the complete expression
+            if not self.waiting_for_operand and self.current_value:
                 self.expression += self.current_value
-                
+            
             # Replace display operators with Python operators
             eval_expr = self.expression.replace('×', '*').replace('÷', '/')
             
