@@ -1,18 +1,25 @@
-name: Python application
+name: Python CI/CD
 
 on:
   push:
-    branches: ["main"]
+    branches: [ "main" ]
   pull_request:
-    branches: ["main"]
+    branches: [ "main" ]
   workflow_dispatch:
 
 jobs:
   test:
-    runs-on: ubuntu-24.04
+    name: Test on ${{ matrix.os }}, Python ${{ matrix.python-version }}
+    runs-on: ${{ matrix.os }}
     strategy:
+      fail-fast: false
       matrix:
-        python-version: ["3.10"]
+        os: [ubuntu-latest, windows-latest, macos-latest]
+        python-version: ["3.8", "3.9", "3.10"]
+        exclude:
+          # Exclure Python 3.8 sur Windows en raison de problèmes de compatibilité avec certaines dépendances
+          - os: windows-latest
+            python-version: "3.8"
 
     steps:
     - uses: actions/checkout@v3
@@ -22,23 +29,23 @@ jobs:
       with:
         python-version: ${{ matrix.python-version }}
     
-    - name: Install system dependencies
+    - name: Install system dependencies (Linux)
+      if: runner.os == 'Linux'
       run: |
-        echo "=== Installing System Dependencies ==="
         sudo apt-get update
         sudo apt-get install -y \
-            python3-pip \
             python3-dev \
             xvfb \
-            libgl1 \
+            libxcb-xinerama0 \
+            libxcb-cursor0 \
             libglx0 \
             libopengl0 \
             libegl1 \
             libgl1-mesa-dri \
+            libgl1-mesa-glx \
             libgles2 \
             libglu1-mesa \
-            libxcb-xinerama0 \
-            libxcb-cursor0 \
+            libxkbcommon-x11-0 \
             libxcb-icccm4 \
             libxcb-image0 \
             libxcb-keysyms1 \
@@ -47,56 +54,125 @@ jobs:
             libxcb-shape0 \
             libxcb-xfixes0 \
             libxcb-xkb1 \
-            libxcb-util1 \
-            libxkbcommon-x11-0
+            libxcb-util1
     
-    - name: Install PyQt6 and dependencies
+    - name: Install dependencies
       run: |
-        echo "=== Installing PyQt6 ==="
         python -m pip install --upgrade pip
-        pip install PyQt6 PyQt6-Qt6 PyQt6-sip
-        pip install -r requirements.txt
+        pip install -e .[dev]
     
-    - name: Verify PyQt6 installation
+    - name: Run tests with coverage
+      if: runner.os != 'Windows'  # Les tests avec couverture ne fonctionnent pas bien sur Windows
       run: |
-        echo "=== Verifying PyQt6 Installation ==="
-        python -c "from PyQt6.QtCore import QT_VERSION_STR; print(f'PyQt6 Qt version: {QT_VERSION_STR}')"
+        if [ "$RUNNER_OS" = "Linux" ]; then
+          export DISPLAY=:99
+          /usr/bin/Xvfb :99 -screen 0 1024x768x24 > /dev/null 2>&1 &
+        fi
+        python -m pytest --cov=smartcalc --cov-report=xml --cov-report=term
+      env:
+        QT_DEBUG_PLUGINS: 1
+        QT_QPA_PLATFORM: offscreen
+        QT_QUICK_BACKEND: software
+        LIBGL_ALWAYS_SOFTWARE: 1
     
-    - name: Install package in development mode
+    - name: Run tests without coverage (Windows)
+      if: runner.os == 'Windows'
       run: |
-        echo "=== Installing package in development mode ==="
-        pip install -e .
+        python -m pytest -v
+      env:
+        QT_DEBUG_PLUGINS: 1
+        QT_QPA_PLATFORM: windows
     
-    - name: Run basic tests with offscreen plugin
-      run: |
-        echo "=== Running Basic Tests with Offscreen Plugin ==="
-        
-        # Démarrer Xvfb en arrière-plan
-        export DISPLAY=:99
-        /usr/bin/Xvfb :99 -screen 0 1024x768x24 > /dev/null 2>&1 &
-        
-        # Configurer l'environnement Qt
-        export QT_DEBUG_PLUGINS=1
-        export QT_QPA_PLATFORM=offscreen
-        export QT_QUICK_BACKEND=software
-        export LIBGL_ALWAYS_SOFTWARE=1
-        
-        # Créer un script Python simple
-        echo 'import sys' > test_imports.py
-        echo 'from PyQt6.QtWidgets import QApplication' >> test_imports.py
-        echo 'from PyQt6.QtCore import QT_VERSION_STR' >> test_imports.py
-        echo 'print(f"PyQt6 Qt version: {QT_VERSION_STR}")' >> test_imports.py
-        echo 'app = QApplication([])' >> test_imports.py
-        echo 'print("Success: QApplication created")' >> test_imports.py
-        
-        # Exécuter le test
-        python test_imports.py
+    - name: Upload coverage to Codecov
+      if: runner.os != 'Windows' && github.event_name == 'push'
+      uses: codecov/codecov-action@v3
+      with:
+        file: ./coverage.xml
+        flags: unittests
+        env_vars: OS,PYTHON
+        name: codecov-umbrella
+        fail_ci_if_error: false
+
+  lint:
+    name: Lint and type check
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v3
     
-    - name: Run pytest with offscreen plugin
+    - name: Set up Python 3.10
+      uses: actions/setup-python@v4
+      with:
+        python-version: "3.10"
+    
+    - name: Install dependencies
       run: |
-        echo "=== Running pytest with offscreen plugin ==="
-        export QT_QPA_PLATFORM=offscreen
-        export QT_QUICK_BACKEND=software
-        export LIBGL_ALWAYS_SOFTWARE=1
-        pip install pytest pytest-qt
-        python -m pytest tests/ -v
+        python -m pip install --upgrade pip
+        pip install -e .[dev]
+    
+    - name: Run black
+      run: black --check .
+    
+    - name: Run flake8
+      run: flake8 .
+    
+    - name: Run mypy
+      run: mypy .
+    
+    - name: Run pylint
+      run: pylint smartcalc tests
+
+  security:
+    name: Security checks
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v3
+    
+    - name: Set up Python 3.10
+      uses: actions/setup-python@v4
+      with:
+        python-version: "3.10"
+    
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install safety bandit
+    
+    - name: Check for known security vulnerabilities
+      run: safety check --full-report
+    
+    - name: Run bandit security linter
+      run: bandit -r smartcalc -c pyproject.toml
+
+  build:
+    name: Build package
+    needs: [test, lint, security]
+    if: github.event_name == 'push' && contains(github.ref, 'refs/tags/')
+    runs-on: ubuntu-latest
+    
+    steps:
+    - uses: actions/checkout@v3
+    
+    - name: Set up Python 3.10
+      uses: actions/setup-python@v4
+      with:
+        python-version: "3.10"
+    
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install build twine
+    
+    - name: Build package
+      run: |
+        python -m build
+    
+    - name: Verify package
+      run: |
+        twine check dist/*
+    
+    - name: Upload artifacts
+      uses: actions/upload-artifact@v3
+      with:
+        name: python-package
+        path: dist/*
+        retention-days: 5

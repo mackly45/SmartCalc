@@ -1,0 +1,69 @@
+version: 2
+updates:
+  # Enable version updates for GitHub Actions
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    # Assign pull requests to the designated developer
+    assignees:
+      - "mackly45"
+    # Add a label to all pull requests
+    labels:
+      - "dependencies"
+      - "github-actions"
+
+  # Enable version updates for pip
+  - package-ecosystem: "pip"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    assignees:
+      - "mackly45"
+    labels:
+      - "dependencies"
+      - "python"
+    # Only allow updates to the lock file in PRs, not direct pushes
+    versioning-strategy: increase-if-necessary
+
+  # Enable security updates for GitHub Actions
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "daily"
+    # Only allow security updates
+    allow:
+      - dependency-type: "security"
+    assignees:
+      - "mackly45"
+    labels:
+      - "security"
+      - "github-actions"
+
+  # Enable security updates for pip
+  - package-ecosystem: "pip"
+    directory: "/"
+    schedule:
+      interval: "daily"
+    allow:
+      - dependency-type: "security"
+    assignees:
+      - "mackly45"
+    labels:
+      - "security"
+      - "python"
+
+# Configuration for security updates
+security-updates:
+  # Enable security updates
+  enabled: true
+  # Automatically create pull requests for security updates
+  automerge: true
+  # Only automerge patch updates
+  automerge-strategy: "auto"
+  # Assign security updates to the security team
+  assignees:
+    - "mackly45"
+  # Add security label to all security updates
+  labels:
+    - "security"

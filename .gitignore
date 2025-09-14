@@ -25,6 +25,10 @@ wheels/
 .installed.cfg
 *.egg
 
+# Documentation
+site/
+.python-version
+
 # Environnements IDE
 .idea/
 .vscode/
@@ -40,7 +44,59 @@ wheels/
 .pytest_cache/
 .coverage
 htmlcov/
+.mypy_cache/
+.pytest_cache/
 
 # Fichiers système
 .DS_Store
 Thumbs.db
+
+# Fichiers de documentation générés
+docs/api/
+!docs/api/.gitkeep
+
+# Fichiers temporaires
+*.tmp
+*.bak
+*~
+
+# Fichiers de couverture de test
+.coverage.*
+coverage.xml
+*.cover
+
+# Fichiers de compilation
+*.pyc
+*.pyo
+*.pyd
+
+# Fichiers de cache de Jupyter Notebook
+.ipynb_checkpoints
+
+# Fichiers de cache VS Code
+.vscode/
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/extensions.json
+
+# Fichiers de cache PyCharm
+.idea/
+.idea_modules/
+
+# Fichiers de cache macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# Fichiers de cache Windows
+Thumbs.db
+ehthumbs.db
+ehthumbs_vista.db
+
+# Fichiers de cache Linux
+*~
+.fuse_hidden*
+.directory
+.Trash-*
+.nfs*

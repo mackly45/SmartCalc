@@ -1,0 +1,10 @@
+# Les propriétaires par défaut qui seront automatiquement assignés aux revues de code
+* @mackly45
+
+# Spécifiez des propriétaires pour des dossiers spécifiques
+/docs/ @mackly45
+/tests/ @mackly45
+/smartcalc/ @mackly45
+
+# Exigence d'approbation pour les changements critiques
+/.github/ @mackly45

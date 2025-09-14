@@ -1,0 +1,66 @@
+name: Notifications
+
+on:
+  workflow_run:
+    workflows: ["Python CI/CD", "Deploy Documentation"]
+    types:
+      - completed
+
+jobs:
+  notify-failure:
+    if: >
+      github.event.workflow_run.conclusion == 'failure' &&
+      (github.event.workflow_run.event == 'push' || 
+       github.event.workflow_run.event == 'pull_request')
+    runs-on: ubuntu-latest
+    steps:
+      - name: Send failure notification
+        uses: actions/github-script@v6
+        with:
+          script: |
+            const { data: issue } = await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.payload.workflow_run.pull_requests[0]?.number || 0,
+              body: `❌ **Build Failed**
+              
+              Workflow **${{ github.event.workflow_run.name }}** failed for ${{ github.event.workflow_run.event === 'push' ? 'commit' : 'PR' }}.
+              
+              **Details:**
+              - Workflow: ${{ github.event.workflow_run.name }}
+              - Run: [${{ github.run_id }}](${{ github.event.workflow_run.html_url }})
+              - Commit: [${github.sha.slice(0, 7)}](${github.server_url}/${{ github.repository }}/commit/${{ github.sha }})`
+            });
+
+      - name: Send Slack notification
+        if: failure() && github.event_name == 'workflow_run' && github.event.workflow_run.event == 'push'
+        uses: rtCamp/action-slack-notify@v2
+        env:
+          SLACK_WEBHOOK: ${{ secrets.SLACK_WEBHOOK_URL }}
+          SLACK_TITLE: "Build Failed: ${{ github.repository }} - ${{ github.ref_name }}"
+          SLACK_MESSAGE: "Workflow *${{ github.workflow }}* failed for ${{ github.event.workflow_run.event === 'push' ? 'commit' : 'PR' }}. <${{ github.event.workflow_run.html_url }}|View build>"
+          SLACK_COLOR: "danger"
+          SLACK_USERNAME: "GitHub Actions"
+          SLACK_ICON: "https://github.githubassets.com/images/modules/logos_page/GitHub-Mark.png"
+
+      - name: Send email notification
+        if: failure() && github.event_name == 'workflow_run' && github.event.workflow_run.event == 'push'
+        uses: dawidd6/action-send-mail@v3
+        with:
+          server_address: smtp.gmail.com
+          server_port: 465
+          username: ${{secrets.EMAIL_USERNAME}}
+          password: ${{secrets.EMAIL_PASSWORD}}
+          subject: "❌ Build Failed: ${{ github.repository }} - ${{ github.ref_name }}"
+          to: ${{secrets.EMAIL_TO}}
+          from: GitHub Actions <${{secrets.EMAIL_FROM}}>
+          body: |
+            Build failed for ${{ github.repository }}.
+            
+            Details:
+            - Workflow: ${{ github.workflow }}
+            - Run: ${{ github.run_id }}
+            - Commit: ${{ github.sha }}
+            - Link: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+            
+            Please check the logs for more details.

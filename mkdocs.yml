@@ -1,0 +1,48 @@
+site_name: SmartCalc
+site_description: Une calculatrice scientifique avancée
+site_author: Votre Nom
+
+theme:
+  name: material
+  palette:
+    - scheme: default
+      primary: indigo
+      toggle:
+        icon: material/weather-night
+        name: Switch to dark mode
+    - scheme: slate
+      primary: indigo
+      toggle:
+        icon: material/weather-sunny
+        name: Switch to light mode
+
+repo_name: mackly45/SmartCalc
+repo_url: https://github.com/mackly45/SmartCalc
+
+docs_dir: docs
+site_dir: site
+
+nav:
+  - Accueil: index.md
+  - Installation: installation.md
+  - Utilisation: usage.md
+  - API: api.md
+
+markdown_extensions:
+  - admonition
+  - codehilite
+  - toc:
+      permalink: true
+  - pymdownx.arithmatex
+  - pymdownx.highlight
+  - pymdownx.superfences
+  - pymdownx.tabbed
+  - pymdownx.tilde
+
+plugins:
+  - search
+  - mkdocstrings
+  - mkdocs-material
+
+extra_css:
+  - css/extra.css

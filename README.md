@@ -1,4 +1,18 @@
-# SmartCalc - Calculatrice Scientifique
+# SmartCalc
+
+[![Python Version](https://img.shields.io/badge/python-3.8%20%7C%203.9%20%7C%203.10-blue)](https://www.python.org/)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![Build Status](https://github.com/mackly45/SmartCalc/actions/workflows/python-app.yml/badge.svg)](https://github.com/mackly45/SmartCalc/actions)
+[![Documentation Status](https://github.com/mackly45/SmartCalc/actions/workflows/python-docs.yml/badge.svg)](https://mackly45.github.io/SmartCalc/)
+[![Code Coverage](https://codecov.io/gh/mackly45/SmartCalc/branch/main/graph/badge.svg?token=YOUR-TOKEN-HERE)](https://codecov.io/gh/mackly45/SmartCalc)
+[![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
+[![Imports: isort](https://img.shields.io/badge/%20imports-isort-%231674b1?style=flat&labelColor=ef8336)](https://pycqa.github.io/isort/)
+[![Checked with mypy](http://www.mypy-lang.org/static/mypy_badge.svg)](http://mypy-lang.org/)
+[![CodeFactor](https://www.codefactor.io/repository/github/mackly45/smartcalc/badge)](https://www.codefactor.io/repository/github/mackly45/smartcalc)
+[![OpenSSF Scorecard](https://api.securityscorecards.dev/projects/github.com/mackly45/SmartCalc/badge)](https://api.securityscorecards.dev/projects/github.com/mackly45/SmartCalc)
+[![Dependabot Status](https://api.dependabot.com/badges/status?host=github&repo=mackly45/SmartCalc)](https://dependabot.com)
+[![Maintainability](https://api.codeclimate.com/v1/badges/YOUR-BADGE-ID/maintainability)](https://codeclimate.com/github/mackly45/SmartCalc/maintainability)
+[![FOSSA Status](https://app.fossa.com/api/projects/git%2Bgithub.com%2Fmackly45%2FSmartCalc.svg?type=shield)](https://app.fossa.com/projects/git%2Bgithub.com%2Fmackly45%2FSmartCalc?ref=badge_shield)
 
 Une calculatrice scientifique avancée développée avec Python et PyQt6, offrant des fonctionnalités de calcul scientifique, de conversion de devises et d'analyse mathématique avancée.
 
@@ -12,6 +26,10 @@ Une calculatrice scientifique avancée développée avec Python et PyQt6, offran
   - Calculs matriciels
   - Factorisation d'expressions algébriques
   - Analyse de fonctions
+
+## Captures d'écran
+
+![Interface de SmartCalc](docs/img/screenshot.png)
 
 ## Prérequis
 
