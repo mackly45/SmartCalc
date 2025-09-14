@@ -35,10 +35,9 @@ jobs:
             libglx0 \
             libopengl0 \
             libegl1 \
-            libegl1-mesa \
-            libgles2-mesa \
             libgl1-mesa-dri \
             libgl1-mesa-glx \
+            libgles2 \
             libglu1-mesa \
             libxkbcommon-x11-0 \
             libxcb-icccm4 \
