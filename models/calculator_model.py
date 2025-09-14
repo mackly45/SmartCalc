@@ -3,89 +3,79 @@ class CalculatorModel:
         self.current_value = '0'
         self.expression = ''
         self.memory = 0
+        self.waiting_for_operand = True
 
     def clear(self):
         self.current_value = '0'
         self.expression = ''
+        self.waiting_for_operand = True
 
     def append_number(self, number):
-        if self.current_value == '0' and number != '.':
+        if self.waiting_for_operand:
             self.current_value = str(number)
+            self.waiting_for_operand = False
         else:
             self.current_value += str(number)
-        
-        if self.expression == '0' or self.expression.endswith('='):
-            self.expression = self.current_value
-        else:
-            self.expression += str(number)
 
     def add_operator(self, operator):
-        if self.expression.endswith(('+', '-', '*', '/', '=')):
-            self.expression = self.expression[:-1] + operator
-        else:
-            self.expression += operator
-        self.current_value = '0'
+        if not self.expression and not self.current_value:
+            return
+            
+        if not self.expression:
+            self.expression = self.current_value
+            
+        if not self.waiting_for_operand:
+            self.expression += self.current_value
+            
+        self.expression += operator
+        self.waiting_for_operand = True
+        self.current_value = ''
 
     def calculate(self):
+        if not self.expression:
+            return
+            
         try:
-            # If we have a current value but no expression, use it as the first operand
-            if not self.expression and self.current_value:
-                self.expression = self.current_value
+            # Add the current value to the expression if there isn't already an operator at the end
+            if self.current_value and (not self.expression or self.expression[-1] not in '+-×÷'):
+                self.expression += self.current_value
+                
+            # Replace display operators with Python operators
+            eval_expr = self.expression.replace('×', '*').replace('÷', '/')
             
-            # If expression ends with an operator, remove it before evaluating
-            if self.expression and self.expression[-1] in '+-×÷':
-                self.expression = self.expression[:-1]
-            
-            if self.expression:
-                # Replace display operators with Python operators
-                eval_expr = self.expression.replace('×', '*').replace('÷', '/')
+            # Remove any trailing operators
+            while eval_expr and eval_expr[-1] in '+-*/':
+                eval_expr = eval_expr[:-1]
+                
+            if eval_expr:
                 result = str(eval(eval_expr))
-                self.expression = self.expression + '=' + result
+                self.expression = ''
                 self.current_value = result
+                self.waiting_for_operand = True
+                
         except (SyntaxError, NameError, TypeError, ZeroDivisionError) as e:
             print(f"Error in calculation: {e}")
             self.current_value = 'Error'
             self.expression = ''
+            self.waiting_for_operand = True
 
     def add_decimal(self):
-        if '.' not in self.current_value:
+        if self.waiting_for_operand:
+            self.current_value = '0.'
+            self.waiting_for_operand = False
+        elif '.' not in self.current_value:
             self.current_value += '.'
-            self.expression = self.current_value if self.expression == '0' else self.expression + '.'
 
     def percentage(self):
         try:
             value = float(self.current_value) / 100
             self.current_value = str(value)
-            self.expression = self.current_value
-        except:
+            self.waiting_for_operand = False
+        except (ValueError, TypeError):
             self.current_value = 'Error'
-            self.expression = ''
 
     def toggle_sign(self):
         if self.current_value.startswith('-'):
             self.current_value = self.current_value[1:]
-        else:
+        elif self.current_value != '0':
             self.current_value = '-' + self.current_value
-        
-        if '=' in self.expression:
-            self.expression = self.current_value
-        else:
-            # Update the last number in the expression
-            parts = []
-            temp = ''
-            for char in self.expression:
-                if char in '+-*/':
-                    if temp:
-                        parts.append(temp)
-                        temp = ''
-                    parts.append(char)
-                else:
-                    temp += char
-            if temp:
-                parts.append(temp)
-            
-            if parts and parts[-1].lstrip('-').replace('.', '').isdigit():
-                parts[-1] = self.current_value
-                self.expression = ''.join(parts)
-            else:
-                self.expression = self.current_value

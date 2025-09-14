@@ -54,6 +54,22 @@ def test_basic_arithmetic():
     calc.append_number("3")
     calc.calculate()
     assert calc.current_value == "7"
+    
+    # Test de multiplication
+    calc.clear()
+    calc.current_value = "5"
+    calc.add_operator("×")
+    calc.append_number("3")
+    calc.calculate()
+    assert calc.current_value == "15"
+    
+    # Test de division
+    calc.clear()
+    calc.current_value = "15"
+    calc.add_operator("÷")
+    calc.append_number("3")
+    calc.calculate()
+    assert calc.current_value == "5.0"
 
 def test_scientific_functions():
     """Teste les fonctions scientifiques de base"""
