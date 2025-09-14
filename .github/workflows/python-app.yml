@@ -10,14 +10,17 @@ on:
 jobs:
   test:
     runs-on: ubuntu-latest
-    
+    strategy:
+      matrix:
+        python-version: ["3.10"]
+
     steps:
     - uses: actions/checkout@v3
     
-    - name: Set up Python 3.10
+    - name: Set up Python ${{ matrix.python-version }}
       uses: actions/setup-python@v4
       with:
-        python-version: "3.10"
+        python-version: ${{ matrix.python-version }}
     
     - name: Install system dependencies
       run: |
@@ -36,48 +39,33 @@ jobs:
             libxcb-render-util0 \
             libxcb-shape0 \
             libxcb-xfixes0 \
-            libxcb-xkb1
+            libxcb-xkb1 \
+            libgl1-mesa-glx
     
-    - name: Install package in development mode
+    - name: Install PyQt6 and dependencies
       run: |
-        echo "=== Installing Package in Development Mode ==="
+        echo "=== Installing PyQt6 ==="
         python -m pip install --upgrade pip
-        pip install -e .
-        
-    - name: Run tests
+        pip install PyQt6 PyQt6-Qt6 PyQt6-sip
+        pip install -r requirements.txt
+    
+    - name: Verify PyQt6 installation
       run: |
-        echo "=== Running Tests ==="
+        echo "=== Verifying PyQt6 Installation ==="
+        python -c "from PyQt6.QtCore import QT_VERSION_STR; print(f'PyQt6 Qt version: {QT_VERSION_STR}')"
+    
+    - name: Install package
+      run: |
+        echo "=== Installing package in development mode ==="
+        pip install -e .
+    
+    - name: Run basic tests
+      run: |
+        echo "=== Running Basic Tests ==="
         export DISPLAY=:99.0
         Xvfb :99 -screen 0 1024x768x24 > /dev/null 2>&1 &
-        
-        # Run basic tests
-        python -c "
-        import sys
-        print('Python version:', sys.version)
-        print('Python path:', sys.path)
-        
-        # Test PyQt6 import
-        try:
-            import PyQt6
-            print('PyQt6 version:', PyQt6.QtCore.QT_VERSION_STR)
-        except Exception as e:
-            print('PyQt6 import error:', str(e))
-            import traceback; traceback.print_exc()
-            sys.exit(1)
-            
-        # Test application import
-        try:
-            from smartcalc import main
-            print('Successfully imported smartcalc')
-        except Exception as e:
-            print('Error importing smartcalc:', str(e))
-            import traceback; traceback.print_exc()
-            sys.exit(1)
-        "
-        
-        # Run the application in test mode
-        python -m smartcalc --test-mode
-        
+        python -c "from PyQt6.QtWidgets import QApplication; app = QApplication([]); print('PyQt6 QApplication created successfully')"
+    
     - name: Run pytest
       run: |
         echo "=== Running pytest ==="

@@ -6,6 +6,8 @@ setup(
     packages=find_packages(),
     install_requires=[
         'PyQt6>=6.0.0',
+        'PyQt6-Qt6>=6.4.0',
+        'PyQt6-sip>=13.4.0',
         'numpy>=1.20.0',
         'matplotlib>=3.4.0',
         'sympy>=1.8',
@@ -21,4 +23,9 @@ setup(
         "License :: OSI Approved :: MIT License",
         "Operating System :: OS Independent",
     ],
+    entry_points={
+        'console_scripts': [
+            'smartcalc=smartcalc.main:main',
+        ],
+    },
 )
