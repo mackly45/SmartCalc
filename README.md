@@ -22,7 +22,7 @@ Une calculatrice scientifique avancée développée avec Python et PyQt6, offran
 
 1. Clonez le dépôt :
    ```bash
-   git clone https://github.com/votre-utilisateur/SmartCalc.git
+   git clone https://github.com/mackly45/SmartCalc.git
    cd SmartCalc
    ```
 
