@@ -20,13 +20,37 @@ Une calculatrice scientifique avancée développée avec Python et PyQt6, offran
 
 ## Installation
 
+### Production
+
+1. Installation directe :
+   ```bash
+   pip install git+https://github.com/mackly45/SmartCalc.git
+   ```
+
+2. Ou en mode développement :
+   ```bash
+   git clone https://github.com/mackly45/SmartCalc.git
+   cd SmartCalc
+   
+   # Création d'un environnement virtuel (recommandé)
+   python -m venv venv
+   source venv/bin/activate  # Sur Linux/Mac
+   # OU
+   .\venv\Scripts\activate  # Sur Windows
+   
+   # Installation en mode développement
+   pip install -e .
+   ```
+
+### Développement
+
 1. Clonez le dépôt :
    ```bash
    git clone https://github.com/mackly45/SmartCalc.git
    cd SmartCalc
    ```
 
-2. Créez un environnement virtuel (recommandé) :
+2. Créez et activez un environnement virtuel :
    ```bash
    python -m venv venv
    source venv/bin/activate  # Sur Linux/Mac
@@ -34,9 +58,25 @@ Une calculatrice scientifique avancée développée avec Python et PyQt6, offran
    .\venv\Scripts\activate  # Sur Windows
    ```
 
-3. Installez les dépendances :
+3. Installez les dépendances de développement :
    ```bash
-   pip install -r requirements.txt
+   pip install -r requirements-dev.txt
+   ```
+
+4. Pour exécuter les tests :
+   ```bash
+   pytest -v
+   ```
+
+5. Pour formater le code :
+   ```bash
+   black .
+   ```
+
+6. Pour vérifier la qualité du code :
+   ```bash
+   flake8 .
+   pylint smartcalc/
    ```
 
 ## Utilisation
