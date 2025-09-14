@@ -41,15 +41,15 @@ def test_basic_arithmetic():
     calc = CalculatorModel()
     
     # Test d'addition
-    calc.current_value = "5"
-    calc.add_operator("+")
-    calc.append_number("3")
-    calc.calculate()
+    calc.append_number("5")  # Entrer 5
+    calc.add_operator("+")   # Appuyer sur +
+    calc.append_number("3")  # Entrer 3
+    calc.calculate()         # Appuyer sur =
     assert calc.current_value == "8"
     
     # Test de soustraction
     calc.clear()
-    calc.current_value = "10"
+    calc.append_number("10")
     calc.add_operator("-")
     calc.append_number("3")
     calc.calculate()
@@ -57,7 +57,7 @@ def test_basic_arithmetic():
     
     # Test de multiplication
     calc.clear()
-    calc.current_value = "5"
+    calc.append_number("5")
     calc.add_operator("×")
     calc.append_number("3")
     calc.calculate()
@@ -65,7 +65,7 @@ def test_basic_arithmetic():
     
     # Test de division
     calc.clear()
-    calc.current_value = "15"
+    calc.append_number("15")
     calc.add_operator("÷")
     calc.append_number("3")
     calc.calculate()

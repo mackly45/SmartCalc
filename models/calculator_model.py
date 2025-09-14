@@ -22,12 +22,16 @@ class CalculatorModel:
             return
             
         if not self.expression:
-            self.expression = self.current_value
+            self.expression = self.current_value if self.current_value else '0'
+        
+        # If we just pressed an operator, replace the last one
+        if self.waiting_for_operand and self.expression and self.expression[-1] in '+-×÷':
+            self.expression = self.expression[:-1] + operator
+        else:
+            if not self.waiting_for_operand:
+                self.expression += self.current_value
+            self.expression += operator
             
-        if not self.waiting_for_operand:
-            self.expression += self.current_value
-            
-        self.expression += operator
         self.waiting_for_operand = True
         self.current_value = ''
 
