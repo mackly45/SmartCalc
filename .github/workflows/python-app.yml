@@ -70,48 +70,27 @@ jobs:
     - name: Run basic tests with offscreen plugin
       run: |
         echo "=== Running Basic Tests with Offscreen Plugin ==="
-        # Créer un script Python temporaire
-        echo 'import os' > test_offscreen.py
-        echo 'import sys' >> test_offscreen.py
-        echo 'from PyQt6.QtWidgets import QApplication' >> test_offscreen.py
-        echo 'from PyQt6.QtCore import QT_VERSION_STR, QLibraryInfo, QCoreApplication, Qt' >> test_offscreen.py
-        echo 'def run_tests():' >> test_offscreen.py
-        echo '    print("=== Environment Variables ===")' >> test_offscreen.py
-        echo '    for key in ["QT_QPA_PLATFORM", "QT_QUICK_BACKEND", "LIBGL_ALWAYS_SOFTWARE"]:' >> test_offscreen.py
-        echo '        print(f"{key} = {os.environ.get(key)}")' >> test_offscreen.py
-        echo '    print("\n=== Testing PyQt6 Import ===")' >> test_offscreen.py
-        echo '    print(f"PyQt6 Qt version: {QT_VERSION_STR}")' >> test_offscreen.py
-        echo '    print("Qt plugins path:", QLibraryInfo.path(QLibraryInfo.LibraryPath.PluginsPath))' >> test_offscreen.py
-        echo '    QCoreApplication.setAttribute(Qt.ApplicationAttribute.AA_ShareOpenGLContexts)' >> test_offscreen.py
-        echo '    app = QApplication([])' >> test_offscreen.py
-        echo '    print("Success: PyQt6 QApplication created with offscreen plugin")' >> test_offscreen.py
-        echo '    try:' >> test_offscreen.py
-        echo '        from smartcalc.controllers.calculator_controller import CalculatorController' >> test_offscreen.py
-        echo '        from smartcalc.models.calculator_model import CalculatorModel' >> test_offscreen.py
-        echo '        from smartcalc.views.calculator_view import CalculatorView' >> test_offscreen.py
-        echo '        print("Success: All main components imported successfully")' >> test_offscreen.py
-        echo '        model = CalculatorModel()' >> test_offscreen.py
-        echo '        model.current_value = "5"' >> test_offscreen.py
-        echo '        model.add_operator("+")' >> test_offscreen.py
-        echo '        model.append_number("3")' >> test_offscreen.py
-        echo '        model.calculate()' >> test_offscreen.py
-        echo '        print(f"Test calculation: 5 + 3 = {model.current_value}")' >> test_offscreen.py
-        echo '        return 0' >> test_offscreen.py
-        echo '    except Exception as e:' >> test_offscreen.py
-        echo '        print(f"Error: {str(e)}")' >> test_offscreen.py
-        echo '        import traceback' >> test_offscreen.py
-        echo '        traceback.print_exc()' >> test_offscreen.py
-        echo '        return 1' >> test_offscreen.py
-        echo '    finally:' >> test_offscreen.py
-        echo '        app.quit()' >> test_offscreen.py
-        echo 'if __name__ == "__main__":' >> test_offscreen.py
-        echo '    sys.exit(run_tests())' >> test_offscreen.py
-
-        # Configurer l'environnement et exécuter le test
+        
+        # Démarrer Xvfb en arrière-plan
+        export DISPLAY=:99
+        /usr/bin/Xvfb :99 -screen 0 1024x768x24 > /dev/null 2>&1 &
+        
+        # Configurer l'environnement Qt
         export QT_DEBUG_PLUGINS=1
+        export QT_QPA_PLATFORM=offscreen
         export QT_QUICK_BACKEND=software
         export LIBGL_ALWAYS_SOFTWARE=1
-        python test_offscreen.py
+        
+        # Créer un script Python simple
+        echo 'import sys' > test_imports.py
+        echo 'from PyQt6.QtWidgets import QApplication' >> test_imports.py
+        echo 'from PyQt6.QtCore import QT_VERSION_STR' >> test_imports.py
+        echo 'print(f"PyQt6 Qt version: {QT_VERSION_STR}")' >> test_imports.py
+        echo 'app = QApplication([])' >> test_imports.py
+        echo 'print("Success: QApplication created")' >> test_imports.py
+        
+        # Exécuter le test
+        python test_imports.py
     
     - name: Run pytest with offscreen plugin
       run: |
