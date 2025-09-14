@@ -2,14 +2,14 @@ name: Python application
 
 on:
   push:
-    branches: [ "main" ]
+    branches: ["main"]
   pull_request:
-    branches: [ "main" ]
+    branches: ["main"]
   workflow_dispatch:
 
 jobs:
   test:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     strategy:
       matrix:
         python-version: ["3.10"]
@@ -40,7 +40,11 @@ jobs:
             libxcb-shape0 \
             libxcb-xfixes0 \
             libxcb-xkb1 \
-            libgl1-mesa-glx
+            libglx0 \
+            libopengl0 \
+            libegl1 \
+            libxkbcommon-x11-0 \
+            libxcb-util1
     
     - name: Install PyQt6 and dependencies
       run: |
@@ -54,7 +58,7 @@ jobs:
         echo "=== Verifying PyQt6 Installation ==="
         python -c "from PyQt6.QtCore import QT_VERSION_STR; print(f'PyQt6 Qt version: {QT_VERSION_STR}')"
     
-    - name: Install package
+    - name: Install package in development mode
       run: |
         echo "=== Installing package in development mode ==="
         pip install -e .
