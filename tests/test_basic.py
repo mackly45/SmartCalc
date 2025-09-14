@@ -62,10 +62,10 @@ def test_scientific_functions():
     sci = ScientificCalculatorModel()
     
     # Test de la fonction carrée
-    assert sci.evaluate_expression("sqrt(16)") == "4.0"
+    assert sci.evaluate_expression("sqrt(16)") == 4.0
     
     # Test de la fonction puissance
-    assert sci.evaluate_expression("2**3") == "8.0"
+    assert sci.evaluate_expression("2**3") == 8.0
 
 # Ce test sera ignoré car il nécessite une interface graphique
 @pytest.mark.skip(reason="Nécessite une interface graphique")

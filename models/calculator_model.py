@@ -28,14 +28,19 @@ class CalculatorModel:
 
     def calculate(self):
         try:
-            # Replace × with * and ÷ with / for evaluation
-            eval_expr = self.expression.replace('×', '*').replace('÷', '/')
+            # If we have a current value but no expression, use it as the first operand
+            if not self.expression and self.current_value:
+                self.expression = self.current_value
+            
             # If expression ends with an operator, remove it before evaluating
-            if eval_expr and eval_expr[-1] in '+-*/':
-                eval_expr = eval_expr[:-1]
-            if eval_expr:  # Only evaluate if there's something to evaluate
+            if self.expression and self.expression[-1] in '+-×÷':
+                self.expression = self.expression[:-1]
+            
+            if self.expression:
+                # Replace display operators with Python operators
+                eval_expr = self.expression.replace('×', '*').replace('÷', '/')
                 result = str(eval(eval_expr))
-                self.expression = eval_expr + '=' + result
+                self.expression = self.expression + '=' + result
                 self.current_value = result
         except (SyntaxError, NameError, TypeError, ZeroDivisionError) as e:
             print(f"Error in calculation: {e}")
