@@ -1,6 +1,18 @@
 import sys
 import os
-import pytest
+
+try:
+    import pytest
+except ImportError:
+    # Skip pytest decorators if pytest is not available
+    import types
+    sys.modules['pytest'] = types.ModuleType('pytest')
+    def skip(*args, **kwargs):
+        def decorator(func):
+            return func
+        return decorator
+    sys.modules['pytest'].mark = types.SimpleNamespace()
+    sys.modules['pytest'].mark.skip = skip
 
 # Ajouter le répertoire parent au chemin Python pour les imports
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
@@ -50,10 +62,10 @@ def test_scientific_functions():
     sci = ScientificCalculatorModel()
     
     # Test de la fonction carrée
-    assert sci.calculate_expression("sqrt(16)") == "4.0"
+    assert sci.evaluate_expression("sqrt(16)") == "4.0"
     
     # Test de la fonction puissance
-    assert sci.calculate_expression("2^3".replace("^", "**")) == "8.0"
+    assert sci.evaluate_expression("2**3") == "8.0"
 
 # Ce test sera ignoré car il nécessite une interface graphique
 @pytest.mark.skip(reason="Nécessite une interface graphique")

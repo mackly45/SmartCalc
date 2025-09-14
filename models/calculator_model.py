@@ -30,10 +30,15 @@ class CalculatorModel:
         try:
             # Replace × with * and ÷ with / for evaluation
             eval_expr = self.expression.replace('×', '*').replace('÷', '/')
-            result = str(eval(eval_expr))
-            self.expression += '=' + result
-            self.current_value = result
-        except:
+            # If expression ends with an operator, remove it before evaluating
+            if eval_expr and eval_expr[-1] in '+-*/':
+                eval_expr = eval_expr[:-1]
+            if eval_expr:  # Only evaluate if there's something to evaluate
+                result = str(eval(eval_expr))
+                self.expression = eval_expr + '=' + result
+                self.current_value = result
+        except (SyntaxError, NameError, TypeError, ZeroDivisionError) as e:
+            print(f"Error in calculation: {e}")
             self.current_value = 'Error'
             self.expression = ''
 
