@@ -30,16 +30,16 @@ jobs:
             python3-pip \
             python3-dev \
             xvfb \
-            libxcb-xinerama0 \
-            libxcb-cursor0 \
+            libgl1 \
             libglx0 \
             libopengl0 \
             libegl1 \
             libgl1-mesa-dri \
-            libgl1-mesa-glx \
+            libgl1-mesa-gl \
             libgles2 \
             libglu1-mesa \
-            libxkbcommon-x11-0 \
+            libxcb-xinerama0 \
+            libxcb-cursor0 \
             libxcb-icccm4 \
             libxcb-image0 \
             libxcb-keysyms1 \
@@ -48,7 +48,8 @@ jobs:
             libxcb-shape0 \
             libxcb-xfixes0 \
             libxcb-xkb1 \
-            libxcb-util1
+            libxcb-util1 \
+            libxkbcommon-x11-0
     
     - name: Install PyQt6 and dependencies
       run: |
