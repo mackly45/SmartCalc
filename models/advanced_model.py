@@ -7,10 +7,10 @@ class AdvancedCalculatorModel:
     """Modèle pour la calculatrice avancée (graphiques, matrices, factorisation)"""
 
     # Signaux
-    plot_updated =  # x, y
-    matrix_operation_completed =  # result_matrix
-    factorization_completed =  # result_expression
-    error_occurred =  # error_message
+    plot_updated = lambda x, y: None  # x, y
+    matrix_operation_completed = lambda result_matrix: None  # result_matrix
+    factorization_completed = lambda result_expression: None  # result_expression
+    error_occurred = lambda error_message: None  # error_message
 
     def __init__(self):
         super().__init__()
@@ -143,14 +143,30 @@ class AdvancedCalculatorModel:
 
     # Méthodes pour la factorisation
     def factor_expression(self, expression):
-        """Factorise une expression mathématique"""
+        """
+        Factorise une expression mathématique.
+        
+        Args:
+            expression: L'expression à factoriser
+            
+        Returns:
+            L'expression factorisée ou None en cas d'erreur
+        """
         try:
-            x = 
-            expr = 
-            factored = 
-
-            # Vérifier si la factorisation a fonctionné
-            if  != :
+            # Importer sympy uniquement si nécessaire
+            from sympy import symbols, factor, sympify, expand
+            
+            # Crée un symbole pour la variable
+            x = symbols('x')
+            
+            # Convertit l'expression en une expression sympy
+            expr = sympify(expression)
+            
+            # Factorise l'expression
+            factored = factor(expr)
+            
+            # Vérifie si la factorisation a fonctionné
+            if expand(factored) != expand(expr):
                 self.error_occurred.emit(
                     "Impossible de factoriser complètement l'expression"
                 )
