@@ -2,303 +2,205 @@ from PyQt6.QtWidgets import (
     QWidget,
     QVBoxLayout,
     QHBoxLayout,
+    QGridLayout,
+    QPushButton,
     QLabel,
     QComboBox,
     QLineEdit,
-    QPushButton,
+    QGroupBox,
     QMessageBox,
-    QFormLayout,
-    QSizePolicy,
-    QSpacerItem,
 )
 from PyQt6.QtCore import Qt, pyqtSignal
-from PyQt6.QtGui import QDoubleValidator, QFont
+from PyQt6.QtGui import QFont
 
 
 class CurrencyView(QWidget):
-    convert_requested = pyqtSignal(float, str, str)
-    update_rates_requested = pyqtSignal()
+    """
+    Vue pour le convertisseur de devises.
+    Permet de convertir entre différentes devises en utilisant des taux de change à jour.
+    """
+
+    # Signaux
+    convert_clicked = pyqtSignal(
+        float, str, str
+    )  # montant, devise_source, devise_cible
+    update_rates_clicked = pyqtSignal()  # Demande de mise à jour des taux
+    back_clicked = pyqtSignal()  # Retour à l'écran précédent
 
     def __init__(self, parent=None):
         super().__init__(parent)
         self.setup_ui()
 
     def setup_ui(self):
-        layout = QVBoxLayout(self)
-        layout.setContentsMargins(20, 20, 20, 20)
-        layout.setSpacing(15)
+        """Configure l'interface utilisateur."""
+        # Configuration de la fenêtre
+        self.setWindowTitle("Convertisseur de devises")
+        self.setMinimumSize(500, 400)
 
-        # Titre
-        title = QLabel("Convertisseur de devises")
-        title.setStyleSheet(
-            """
-            QLabel {
-                font-size: 24px;
-                font-weight: bold;
-                color: #cdd6f4;
-                margin-bottom: 20px;
-            }
-        """
-        )
-        layout.addWidget(title, alignment=Qt.AlignmentFlag.AlignCenter)
+        # Layout principal
+        main_layout = QVBoxLayout(self)
+        main_layout.setSpacing(15)
+        main_layout.setContentsMargins(15, 15, 15, 15)
 
-        # Formulaire de conversion
-        form_layout = QFormLayout()
-        form_layout.setSpacing(15)
+        # Bouton de retour
+        self.back_button = QPushButton("← Retour au convertisseur")
+        self.back_button.clicked.connect(self.back_clicked)
+
+        # Groupe pour la sélection des devises
+        currency_group = QGroupBox("Conversion de devises")
+        form_layout = QGridLayout()
 
         # Montant à convertir
-        self.amount_edit = QLineEdit()
-        self.amount_edit.setPlaceholderText("0.00")
-        self.amount_edit.setValidator(QDoubleValidator(0, 999999999, 2, self))
-        self.amount_edit.setStyleSheet(
-            """
-            QLineEdit {
-                padding: 10px;
-                border: 2px solid #45475a;
-                border-radius: 5px;
-                background: #1e1e2e;
-                color: #cdd6f4;
-                font-size: 16px;
-            }
-            QLineEdit:focus {
-                border-color: #89b4fa;
-            }
-        """
-        )
+        self.amount_input = QLineEdit()
+        self.amount_input.setPlaceholderText("Montant à convertir")
+        self.amount_input.setAlignment(Qt.AlignmentFlag.AlignRight)
 
-        # Sélecteurs de devise
+        # Listes déroulantes pour les devises
         self.from_currency_combo = QComboBox()
         self.to_currency_combo = QComboBox()
 
-        for combo in [self.from_currency_combo, self.to_currency_combo]:
-            combo.setStyleSheet(
-                """
-                QComboBox {
-                    padding: 8px;
-                    border: 2px solid #45475a;
-                    border-radius: 5px;
-                    background: #1e1e2e;
-                    color: #cdd6f4;
-                    min-width: 200px;
-                }
-                QComboBox::drop-down {
-                    border: none;
-                }
-                QComboBox QAbstractItemView {
-                    background: #1e1e2e;
-                    color: #cdd6f4;
-                    selection-background-color: #45475a;
-                }
-            """
-            )
-
         # Bouton d'inversion des devises
         self.swap_button = QPushButton("⇅")
-        self.swap_button.setFixedSize(40, 40)
-        self.swap_button.setStyleSheet(
-            """
-            QPushButton {
-                background-color: #45475a;
-                color: #cdd6f4;
-                border: none;
-                border-radius: 5px;
-                font-size: 18px;
-                font-weight: bold;
-            }
-            QPushButton:hover {
-                background-color: #585b70;
-            }
-        """
-        )
+        self.swap_button.setFixedWidth(40)
+        self.swap_button.setToolTip("Inverser les devises")
 
-        # Résultat de la conversion
-        self.result_label = QLabel("0.00")
-        self.result_label.setStyleSheet(
-            """
-            QLabel {
-                font-size: 28px;
-                font-weight: bold;
-                color: #a6e3a1;
-                padding: 10px 0;
-            }
-        """
-        )
-
-        # Taux de change
-        self.rate_label = QLabel("1.00 = 1.00")
-        self.rate_label.setStyleSheet("color: #a6adc8;")
+        # Champ de résultat
+        self.result_display = QLineEdit()
+        self.result_display.setReadOnly(True)
+        self.result_display.setAlignment(Qt.AlignmentFlag.AlignRight)
 
         # Bouton de conversion
         self.convert_button = QPushButton("Convertir")
-        self.convert_button.setStyleSheet(
-            """
-            QPushButton {
-                background-color: #89b4fa;
-                color: #1e1e2e;
-                border: none;
-                border-radius: 5px;
-                padding: 12px 20px;
-                font-size: 16px;
-                font-weight: bold;
-            }
-            QPushButton:hover {
-                background-color: #b4c9fc;
-            }
-            QPushButton:disabled {
-                background-color: #45475a;
-                color: #6c7086;
-            }
-        """
-        )
-
-        # Layout pour les sélecteurs de devise
-        currency_layout = QHBoxLayout()
-        currency_layout.addWidget(self.from_currency_combo)
-        currency_layout.addWidget(self.swap_button)
-        currency_layout.addWidget(self.to_currency_combo)
-
-        # Ajout des widgets au layout du formulaire
-        form_layout.addRow("Montant:", self.amount_edit)
-        form_layout.addRow("De:", currency_layout)
-        form_layout.addRow("Résultat:", self.result_label)
-        form_layout.addRow("Taux:", self.rate_label)
-
-        layout.addLayout(form_layout)
-        layout.addItem(
-            QSpacerItem(
-                20, 20, QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Expanding
-            )
-        )
+        self.convert_button.setMinimumHeight(40)
 
         # Bouton de mise à jour des taux
-        self.update_button = QPushButton("Mettre à jour les taux")
-        self.update_button.setStyleSheet(
-            """
-            QPushButton {
-                background-color: #f9e2af;
-                color: #1e1e2e;
-                border: none;
-                border-radius: 5px;
-                padding: 10px 15px;
-                font-size: 14px;
-            }
-            QPushButton:hover {
-                background-color: #fae8b9;
-            }
-        """
+        self.update_rates_button = QPushButton("Mettre à jour les taux")
+        self.update_rates_button.setToolTip("Récupérer les derniers taux de change")
+
+        # Date de dernière mise à jour
+        self.last_update_label = QLabel("Dernière mise à jour: Inconnue")
+        self.last_update_label.setStyleSheet("color: #666; font-style: italic;")
+
+        # Taux de change actuel
+        self.rate_label = QLabel("Taux: -")
+        self.rate_label.setStyleSheet("font-weight: bold;")
+
+        # Ajout des widgets au layout
+        form_layout.addWidget(QLabel("Montant:"), 0, 0)
+        form_layout.addWidget(self.amount_input, 0, 1)
+        form_layout.addWidget(self.from_currency_combo, 0, 2)
+
+        form_layout.addWidget(self.swap_button, 1, 1)
+
+        form_layout.addWidget(QLabel("Résultat:"), 2, 0)
+        form_layout.addWidget(self.result_display, 2, 1)
+        form_layout.addWidget(self.to_currency_combo, 2, 2)
+
+        form_layout.addWidget(self.rate_label, 3, 0, 1, 3, Qt.AlignmentFlag.AlignCenter)
+
+        currency_group.setLayout(form_layout)
+
+        # Layout pour les boutons
+        button_layout = QHBoxLayout()
+        button_layout.addWidget(self.update_rates_button)
+        button_layout.addWidget(self.convert_button)
+
+        # Ajout des widgets au layout principal
+        main_layout.addWidget(self.back_button)
+        main_layout.addWidget(currency_group)
+        main_layout.addLayout(button_layout)
+        main_layout.addWidget(
+            self.last_update_label, alignment=Qt.AlignmentFlag.AlignRight
         )
-
-        # Barre d'état
-        self.status_label = QLabel("Prêt")
-        self.status_label.setStyleSheet("color: #a6adc8; font-style: italic;")
-
-        # Layout pour les boutons du bas
-        bottom_layout = QVBoxLayout()
-        bottom_layout.addWidget(self.convert_button)
-        bottom_layout.addWidget(self.update_button)
-        bottom_layout.addWidget(
-            self.status_label, alignment=Qt.AlignmentFlag.AlignCenter
-        )
-
-        layout.addLayout(bottom_layout)
+        main_layout.addStretch()
 
         # Connexion des signaux
         self.convert_button.clicked.connect(self.on_convert_clicked)
+        self.update_rates_button.clicked.connect(self.on_update_rates_clicked)
         self.swap_button.clicked.connect(self.on_swap_clicked)
-        self.update_button.clicked.connect(self.update_rates_requested)
-        self.amount_edit.returnPressed.connect(self.on_convert_clicked)
+        self.amount_input.returnPressed.connect(self.on_convert_clicked)
+
+    def on_convert_clicked(self):
+        """Gère le clic sur le bouton de conversion."""
+        try:
+            amount = float(self.amount_input.text().replace(" ", "").replace(",", "."))
+            from_currency = self.from_currency_combo.currentText()
+            to_currency = self.to_currency_combo.currentText()
+
+            if from_currency and to_currency:
+                self.convert_clicked.emit(amount, from_currency, to_currency)
+        except ValueError:
+            self.show_error("Veuillez entrer un montant valide")
+
+    def on_update_rates_clicked(self):
+        """Gère le clic sur le bouton de mise à jour des taux."""
+        self.update_rates_clicked.emit()
+
+    def on_swap_clicked(self):
+        """Inverse les devises source et cible."""
+        current_from = self.from_currency_combo.currentIndex()
+        current_to = self.to_currency_combo.currentIndex()
+
+        self.from_currency_combo.setCurrentIndex(current_to)
+        self.to_currency_combo.setCurrentIndex(current_from)
+
+        # Si une conversion a déjà été effectuée, on la relance
+        if self.result_display.text() and self.amount_input.text():
+            self.on_convert_clicked()
 
     def set_currencies(self, currencies):
-        """Définit la liste des devises disponibles"""
+        """Définit les devises disponibles."""
+        current_from = self.from_currency_combo.currentText()
+        current_to = self.to_currency_combo.currentText()
+
         self.from_currency_combo.clear()
         self.to_currency_combo.clear()
 
-        for code, name in currencies:
-            self.from_currency_combo.addItem(f"{code} - {name}", code)
-            self.to_currency_combo.addItem(f"{code} - {name}", code)
+        if currencies:
+            self.from_currency_combo.addItems(currencies)
+            self.to_currency_combo.addItems(currencies)
 
-        # Définir des valeurs par défaut
-        self.set_default_currencies()
-
-    def set_default_currencies(self):
-        """Définit les devises par défaut"""
-        # Essayer de trouver EUR et USD
-        eur_index = self.from_currency_combo.findData("EUR")
-        usd_index = self.to_currency_combo.findData("USD")
-
-        if eur_index >= 0:
-            self.from_currency_combo.setCurrentIndex(eur_index)
-        if usd_index >= 0:
-            self.to_currency_combo.setCurrentIndex(usd_index)
-
-    def get_conversion_data(self):
-        """Récupère les données de conversion depuis l'interface"""
-        try:
-            amount = float(self.amount_edit.text() or "0")
-            from_currency = self.from_currency_combo.currentData()
-            to_currency = self.to_currency_combo.currentData()
-            return amount, from_currency, to_currency
-        except ValueError:
-            return 0, None, None
-
-    def set_conversion_result(self, result, rate=None):
-        """Affiche le résultat de la conversion"""
-        try:
-            if result is not None:
-                # Formater le résultat avec 2 décimales et des séparateurs de milliers
-                formatted_result = f"{float(result):,.2f}"
-                self.result_label.setText(formatted_result)
-
-                if rate is not None:
-                    from_curr = self.from_currency_combo.currentData()
-                    to_curr = self.to_currency_combo.currentData()
-                    if from_curr and to_curr:
-                        self.rate_label.setText(
-                            f"1 {from_curr} = {float(rate):,.6f} {to_curr}"
-                        )
-                    else:
-                        self.rate_label.setText("Taux de change non disponible")
+            # Essayer de conserver la sélection précédente si possible
+            if current_from in currencies and current_to in currencies:
+                self.from_currency_combo.setCurrentText(current_from)
+                self.to_currency_combo.setCurrentText(current_to)
             else:
-                self.result_label.setText("Erreur")
-                self.rate_label.setText("Impossible d'effectuer la conversion")
-        except Exception as e:
-            print(f"Erreur lors de l'affichage du résultat: {e}")
-            self.result_label.setText("Erreur")
-            self.rate_label.setText("Une erreur est survenue")
+                # Par défaut, sélectionner EUR et USD
+                if "EUR" in currencies and "USD" in currencies:
+                    self.from_currency_combo.setCurrentText("EUR")
+                    self.to_currency_combo.setCurrentText("USD")
 
-    def on_convert_clicked(self):
-        """Gestion du clic sur le bouton de conversion"""
-        amount, from_curr, to_curr = self.get_conversion_data()
-        if from_curr and to_curr:
-            self.convert_requested.emit(amount, from_curr, to_curr)
+    def set_result(self, result):
+        """Affiche le résultat de la conversion."""
+        self.result_display.setText(
+            f"{result:,.2f}".replace(",", " ").replace(".", ",")
+        )
 
-    def on_swap_clicked(self):
-        """Inverse les devises sélectionnées"""
-        from_idx = self.from_currency_combo.currentIndex()
-        to_idx = self.to_currency_combo.currentIndex()
+    def set_exchange_rate(self, rate, from_currency, to_currency):
+        """Affiche le taux de change actuel."""
+        self.rate_label.setText(f"1 {from_currency} = {rate:.6f} {to_currency}")
 
-        self.from_currency_combo.setCurrentIndex(to_idx)
-        self.to_currency_combo.setCurrentIndex(from_idx)
+    def set_last_update(self, last_update):
+        """Affiche la date de dernière mise à jour des taux."""
+        self.last_update_label.setText(f"Dernière mise à jour: {last_update}")
 
-        # Si un montant est saisi, on relance la conversion
-        if self.amount_edit.text():
-            self.on_convert_clicked()
+    def show_error(self, message):
+        """Affiche un message d'erreur."""
+        QMessageBox.critical(self, "Erreur", message)
 
-    def set_status(self, message, is_error=False):
-        """Affiche un message dans la barre d'état"""
-        self.status_label.setText(message)
-        if is_error:
-            self.status_label.setStyleSheet("color: #f38ba8; font-style: italic;")
-        else:
-            self.status_label.setStyleSheet("color: #a6adc8; font-style: italic;")
+    def show_info(self, message):
+        """Affiche un message d'information."""
+        QMessageBox.information(self, "Information", message)
 
     def set_loading(self, loading):
-        """Active ou désactive l'état de chargement"""
+        """Active ou désactive l'état de chargement."""
         self.convert_button.setEnabled(not loading)
-        self.update_button.setEnabled(not loading)
-        self.swap_button.setEnabled(not loading)
+        self.update_rates_button.setEnabled(not loading)
+        self.amount_input.setReadOnly(loading)
 
         if loading:
-            self.set_status("Traitement en cours...")
+            self.convert_button.setText("Chargement...")
+            self.update_rates_button.setText("Mise à jour en cours...")
         else:
-            self.set_status("Prêt")
+            self.convert_button.setText("Convertir")
+            self.update_rates_button.setText("Mettre à jour les taux")

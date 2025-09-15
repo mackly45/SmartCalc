@@ -1,24 +1,14 @@
 from PyQt6.QtWidgets import (
-    QMainWindow,
     QWidget,
     QVBoxLayout,
     QHBoxLayout,
+    QGridLayout,
     QPushButton,
     QLabel,
     QSizePolicy,
-    QGridLayout,
-    QFrame,
 )
-from PyQt6.QtCore import Qt, QSize, pyqtSignal, QRectF
-from PyQt6.QtGui import (
-    QFont,
-    QPixmap,
-    QColor,
-    QPainter,
-    QPainterPath,
-    QIcon,
-    QResizeEvent,
-)
+from PyQt6.QtCore import Qt, QSize, pyqtSignal
+from PyQt6.QtGui import QFont, QPainter, QPainterPath, QIcon, QResizeEvent
 
 
 class ModernButton(QPushButton):
@@ -46,11 +36,11 @@ class ModernButton(QPushButton):
 
                 # Essayer d'abord avec .png, puis avec .jpg
                 try:
-                    self.icon = QPixmap(f"assets/images/characters/{file_text}.png")
+                    self.icon = QIcon(f"assets/images/characters/{file_text}.png")
                     if self.icon.isNull():
                         raise FileNotFoundError
                 except:
-                    self.icon = QPixmap(f"assets/images/characters/{file_text}.jpg")
+                    self.icon = QIcon(f"assets/images/characters/{file_text}.jpg")
                     if self.icon.isNull():
                         raise FileNotFoundError
             except Exception as e:
@@ -106,19 +96,13 @@ class ModernButton(QPushButton):
                 y = int((self.height() - icon_size) / 2)
 
                 # Créer une copie de l'icône avec opacité réduite
-                transparent_icon = self.icon.copy()
+                transparent_icon = self.icon.pixmap(icon_size, icon_size)
 
                 # Appliquer une opacité de 40%
                 painter.setOpacity(0.4)
 
                 # Dessiner l'icône avec opacité réduite
-                scaled_icon = transparent_icon.scaled(
-                    icon_size,
-                    icon_size,
-                    Qt.AspectRatioMode.KeepAspectRatio,
-                    Qt.TransformationMode.SmoothTransformation,
-                )
-                painter.drawPixmap(x, y, scaled_icon)
+                painter.drawPixmap(x, y, transparent_icon)
 
                 # Réinitialiser l'opacité pour le texte
                 painter.setOpacity(1.0)
@@ -178,53 +162,36 @@ class ModernButton(QPushButton):
         painter.drawText(text_rect, alignment, text)
 
 
-class CalculatorView(QMainWindow):
-    button_clicked = pyqtSignal(str)
+class CalculatorView(QWidget):
+    """
+    Vue de la calculatrice standard.
+    Gère l'interface utilisateur et les interactions de base.
+    """
 
-    def __init__(self):
-        super().__init__()
-        self.setWindowTitle("SmartCalc")
-        self.setMinimumSize(300, 500)
-        self.setStyleSheet(
-            """
-            QMainWindow {
-                background-color: #1e1e2e;
-            }
-            QLabel {
-                color: #cdd6f4;
-            }
-        """
-        )
+    # Signaux
+    button_clicked = pyqtSignal(str)  # Émis lorsqu'un bouton est cliqué
+    calculate_clicked = pyqtSignal()  # Émis pour le calcul
+    clear_clicked = pyqtSignal()  # Émis pour effacer
+    backspace_clicked = pyqtSignal()  # Émis pour effacer le dernier caractère
 
-        # Widget central
-        self.central_widget = QWidget()
-        self.setCentralWidget(self.central_widget)
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.setup_ui()
+
+    def setup_ui(self):
+        """Configure l'interface utilisateur de la calculatrice."""
+        # Configuration de la fenêtre principale
+        self.setWindowTitle("Calculatrice")
+        self.setMinimumSize(300, 400)
 
         # Layout principal
-        self.main_layout = QVBoxLayout(self.central_widget)
-        self.main_layout.setContentsMargins(15, 15, 15, 15)
-        self.main_layout.setSpacing(15)
+        main_layout = QVBoxLayout(self)
+        main_layout.setSpacing(10)
+        main_layout.setContentsMargins(10, 10, 10, 10)
 
-        # Affichage de l'expression
-        self.expression_display = QLabel("")
-        self.expression_display.setAlignment(
-            Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignBottom
-        )
-        self.expression_display.setStyleSheet(
-            """
-            QLabel {
-                color: #a6adc8;
-                font-size: 18px;
-                min-height: 24px;
-            }
-        """
-        )
-
-        # Affichage principal
+        # Zone d'affichage
         self.display = QLabel("0")
-        self.display.setAlignment(
-            Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignBottom
-        )
+        self.display.setAlignment(Qt.AlignmentFlag.AlignRight)
         self.display.setStyleSheet(
             """
             QLabel {
@@ -237,9 +204,18 @@ class CalculatorView(QMainWindow):
         """
         )
 
-        # Grille des boutons
-        self.buttons_grid = QGridLayout()
-        self.buttons_grid.setSpacing(10)
+        # Hauteur fixe pour la zone d'affichage
+        self.display.setMinimumHeight(60)
+        self.display.setSizePolicy(
+            QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed
+        )
+
+        # Ajout de la zone d'affichage au layout
+        main_layout.addWidget(self.display)
+
+        # Boutons de la calculatrice
+        buttons_layout = QGridLayout()
+        buttons_layout.setSpacing(10)
 
         # Définition des boutons
         buttons = [
@@ -276,32 +252,14 @@ class CalculatorView(QMainWindow):
                     btn.styleSheet() + "text-align: left; padding-left: 25px;"
                 )
 
-            self.buttons_grid.addWidget(btn, row, col, row_span, col_span)
+            buttons_layout.addWidget(btn, row, col, row_span, col_span)
             self.buttons[btn_text] = btn
             btn.clicked.connect(
                 lambda checked, text=btn_text: self.on_button_click(text)
             )
 
-        # Ajout des widgets au layout principal
-        self.main_layout.addWidget(self.expression_display)
-        self.main_layout.addWidget(self.display)
-        self.main_layout.addLayout(self.buttons_grid)
-
-    def resizeEvent(self, event):
-        # Ajuster la taille de la police en fonction de la taille de la fenêtre
-        font_size = max(24, min(self.width(), self.height()) // 15)
-        self.display.setStyleSheet(
-            f"""
-            QLabel {{
-                color: #cdd6f4;
-                font-size: {font_size}px;
-                font-weight: 300;
-                min-height: {font_size * 1.5}px;
-                max-height: {font_size * 2}px;
-            }}
-        """
-        )
-        super().resizeEvent(event)
+        # Ajout de la grille de boutons au layout principal
+        main_layout.addLayout(buttons_layout)
 
     def on_button_click(self, text):
         self.button_clicked.emit(text)
@@ -309,13 +267,5 @@ class CalculatorView(QMainWindow):
     def update_display(self, value):
         self.display.setText(value)
 
-    def update_expression(self, expression):
-        self.expression_display.setText(expression)
-
     def clear_display(self):
         self.display.setText("0")
-        self.expression_display.setText("")
-
-    def show_error(self):
-        self.display.setText("Error")
-        self.expression_display.setText("")

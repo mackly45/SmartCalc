@@ -1,210 +1,100 @@
-import sys
-import time
-from PyQt6.QtWidgets import (
-    QApplication,
-    QMainWindow,
-    QWidget,
-    QVBoxLayout,
-    QLabel,
-    QStackedWidget,
-    QHBoxLayout,
-    QPushButton,
-    QTabWidget,
-    QStatusBar,
-    QMessageBox,
-)
-from PyQt6.QtGui import QPixmap, QFont
-from PyQt6.QtCore import Qt, QTimer, QSize
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
 
-# Import des vues
+import sys
+from PyQt6.QtWidgets import QApplication, QMainWindow, QVBoxLayout, QWidget, QTabWidget
 from views.calculator_view import CalculatorView
-from views.currency_view import CurrencyView
 from views.scientific_view import ScientificView
 from views.advanced_view import AdvancedView
 from views.conversion_view import ConversionView
-
-# Import des modèles
+from views.currency_view import CurrencyView
 from models.calculator_model import CalculatorModel
-from models.currency_model import CurrencyModel
 from models.scientific_model import ScientificCalculatorModel
 from models.advanced_model import AdvancedCalculatorModel
-
-# Import des contrôleurs
+from models.conversion_model import ConversionModel
+from models.currency_model import CurrencyModel
 from controllers.calculator_controller import CalculatorController
-from controllers.currency_controller import CurrencyController
 from controllers.scientific_controller import ScientificController
 from controllers.advanced_controller import AdvancedController
 from controllers.conversion_controller import ConversionController
-
-import argparse
-
-
-def parse_arguments():
-    parser = argparse.ArgumentParser(
-        description="SmartCalc - Une calculatrice scientifique avancée"
-    )
-    parser.add_argument(
-        "--test-mode",
-        action="store_true",
-        help="Exécute l'application en mode test sans interface graphique",
-    )
-    return parser.parse_args()
-
-
-class LoadingScreen(QMainWindow):
-    def __init__(self):
-        super().__init__()
-
-        # Configuration de la fenêtre
-        self.setWindowTitle("SmartCalc - Chargement...")
-        self.setWindowFlags(
-            Qt.WindowType.FramelessWindowHint | Qt.WindowType.WindowStaysOnTopHint
-        )
-        self.setFixedSize(400, 400)
-
-        # Widget central
-        central_widget = QWidget()
-        self.setCentralWidget(central_widget)
-
-        # Layout principal
-        layout = QVBoxLayout(central_widget)
-        layout.setContentsMargins(20, 20, 20, 20)
-        layout.setSpacing(15)
-
-        # Logo
-        self.logo_label = QLabel()
-        try:
-            pixmap = QPixmap("assets/images/logo.png")
-            if not pixmap.isNull():
-                self.logo_label.setPixmap(
-                    pixmap.scaled(
-                        200,
-                        200,
-                        Qt.AspectRatioMode.KeepAspectRatio,
-                        Qt.TransformationMode.SmoothTransformation,
-                    )
-                )
-        except Exception as e:
-            print(f"Erreur lors du chargement du logo: {e}")
-
-        self.logo_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-
-        # Titre
-        self.title_label = QLabel("SmartCalc")
-        self.title_label.setStyleSheet(
-            """
-            QLabel {
-                color: #cdd6f4;
-                font-size: 32px;
-                font-weight: bold;
-                margin: 20px 0;
-            }
-        """
-        )
-        self.title_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-
-        # Texte de chargement
-        self.loading_label = QLabel("Chargement...")
-        self.loading_label.setStyleSheet(
-            """
-            QLabel {
-                color: #a6adc8;
-                font-size: 16px;
-            }
-        """
-        )
-        self.loading_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-
-        # Ajout des widgets au layout
-        layout.addWidget(self.logo_label)
-        layout.addWidget(self.title_label)
-        layout.addWidget(self.loading_label)
-
-        # Centrer la fenêtre
-        self.center_window()
-
-    def center_window(self):
-        """Centre la fenêtre sur l'écran"""
-        screen = QApplication.primaryScreen().geometry()
-        x = (screen.width() - self.width()) // 2
-        y = (screen.height() - self.height()) // 2
-        self.move(x, y)
+from controllers.currency_controller import CurrencyController
 
 
 class MainWindow(QMainWindow):
+    """Fenêtre principale de l'application."""
+
     def __init__(self):
         super().__init__()
         self.setWindowTitle("SmartCalc - Calculatrice Scientifique")
         self.setMinimumSize(1000, 800)
 
-        # Initialiser les modèles
+        # Création des modèles
         self.calculator_model = CalculatorModel()
         self.scientific_model = ScientificCalculatorModel()
-        self.currency_model = CurrencyModel()
         self.advanced_model = AdvancedCalculatorModel()
+        self.conversion_model = ConversionModel()
+        self.currency_model = CurrencyModel()
 
-        # Initialiser l'interface
-        self._setup_ui()
-
-        # Initialiser les contrôleurs
-        self._init_controllers()
-
-        # Connecter les signaux
-        self._connect_signals()
-
-    def _setup_ui(self):
-        """Configure l'interface utilisateur principale"""
-        # Widget central
-        central_widget = QWidget()
-        main_layout = QVBoxLayout(central_widget)
-
-        # Créer le widget d'onglets
-        self.tab_widget = QTabWidget()
-
-        # Créer les vues
+        # Création des vues
         self.calculator_view = CalculatorView()
         self.scientific_view = ScientificView()
-        self.currency_view = CurrencyView()
         self.advanced_view = AdvancedView()
         self.conversion_view = ConversionView()
+        self.currency_view = CurrencyView()
 
-        # Ajouter les onglets
-        self.tab_widget.addTab(self.calculator_view, "Calculatrice")
-        self.tab_widget.addTab(self.scientific_view, "Scientifique")
-        self.tab_widget.addTab(self.currency_view, "Devises")
-        self.tab_widget.addTab(self.advanced_view, "Avancé")
-        self.tab_widget.addTab(self.conversion_view, "Convertisseur")
+        # Configuration de l'interface
+        self.setup_ui()
 
-        # Ajout du widget d'onglets au layout principal
-        main_layout.addWidget(self.tab_widget)
-
-        # Définir le widget central
-        self.setCentralWidget(central_widget)
-
-        # Barre d'état
-        self.status_bar = QStatusBar()
-        self.setStatusBar(self.status_bar)
-        self.status_bar.showMessage("Prêt")
-
-    def _init_controllers(self):
-        """Initialise les contrôleurs"""
+        # Création des contrôleurs
         self.calculator_controller = CalculatorController(
             self.calculator_model, self.calculator_view
         )
         self.scientific_controller = ScientificController(
             self.scientific_model, self.scientific_view
         )
-        self.currency_controller = CurrencyController(
-            self.currency_model, self.currency_view
-        )
         self.advanced_controller = AdvancedController(
             self.advanced_model, self.advanced_view
         )
-        self.conversion_controller = ConversionController()
+        self.conversion_controller = ConversionController(
+            self.conversion_model, self.conversion_view
+        )
+        self.currency_controller = CurrencyController(
+            self.currency_model, self.currency_view
+        )
 
-    def _connect_signals(self):
-        """Connecte les signaux entre les contrôleurs et les vues"""
-        # Connexions pour le convertisseur
+        # Connexion des signaux
+        self.setup_connections()
+
+    def setup_ui(self):
+        """Configure l'interface utilisateur."""
+        central_widget = QWidget()
+        self.setCentralWidget(central_widget)
+
+        layout = QVBoxLayout(central_widget)
+        layout.setContentsMargins(10, 10, 10, 10)
+        layout.setSpacing(10)
+
+        # Créer le widget d'onglets
+        self.tab_widget = QTabWidget()
+
+        # Ajout des vues à l'interface
+        self.tab_widget.addTab(self.calculator_view, "Calculatrice")
+        self.tab_widget.addTab(self.scientific_view, "Scientifique")
+        self.tab_widget.addTab(self.advanced_view, "Avancé")
+        self.tab_widget.addTab(self.conversion_view, "Convertisseur")
+        self.tab_widget.addTab(self.currency_view, "Devises")
+
+        # Ajout du widget d'onglets au layout principal
+        layout.addWidget(self.tab_widget)
+
+        # Barre d'état
+        self.status_bar = QStatusBar()
+        self.setStatusBar(self.status_bar)
+        self.status_bar.showMessage("Prêt")
+
+    def setup_connections(self):
+        """Établit les connexions entre les signaux et les slots."""
+        # Connexion des signaux pour le convertisseur
         self.conversion_view.convert_requested.connect(self._on_convert_requested)
         self.conversion_view.swap_units_requested.connect(
             self.conversion_controller.swap_units
@@ -281,14 +171,7 @@ class MainWindow(QMainWindow):
 
 
 def main():
-    # Parser les arguments en ligne de commande
-    args = parse_arguments()
-
-    if args.test_mode:
-        print("Exécution en mode test - L'interface graphique ne sera pas affichée")
-        # Ici, vous pouvez ajouter des tests automatisés
-        return 0
-
+    """Point d'entrée principal de l'application."""
     app = QApplication(sys.argv)
 
     # Appliquer un style sombre à toute l'application
@@ -336,6 +219,8 @@ def main():
     main_window = MainWindow()
 
     # Simuler un temps de chargement
+    from PyQt6.QtCore import QTimer
+
     QTimer.singleShot(2000, lambda: show_main_app(loading_screen, main_window))
 
     sys.exit(app.exec())
@@ -345,6 +230,90 @@ def show_main_app(loading_screen, main_window):
     """Affiche l'application principale après le chargement"""
     main_window.showMaximized()
     loading_screen.close()
+
+
+class LoadingScreen(QMainWindow):
+    def __init__(self):
+        super().__init__()
+
+        # Configuration de la fenêtre
+        self.setWindowTitle("SmartCalc - Chargement...")
+        self.setWindowFlags(
+            Qt.WindowType.FramelessWindowHint | Qt.WindowType.WindowStaysOnTopHint
+        )
+        self.setFixedSize(400, 400)
+
+        # Widget central
+        central_widget = QWidget()
+        self.setCentralWidget(central_widget)
+
+        # Layout principal
+        layout = QVBoxLayout(central_widget)
+        layout.setContentsMargins(20, 20, 20, 20)
+        layout.setSpacing(15)
+
+        # Logo
+        self.logo_label = QLabel()
+        try:
+            from PyQt6.QtGui import QPixmap
+
+            pixmap = QPixmap("assets/images/logo.png")
+            if not pixmap.isNull():
+                self.logo_label.setPixmap(
+                    pixmap.scaled(
+                        200,
+                        200,
+                        Qt.AspectRatioMode.KeepAspectRatio,
+                        Qt.TransformationMode.SmoothTransformation,
+                    )
+                )
+        except Exception as e:
+            print(f"Erreur lors du chargement du logo: {e}")
+
+        self.logo_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+
+        # Titre
+        self.title_label = QLabel("SmartCalc")
+        self.title_label.setStyleSheet(
+            """
+            QLabel {
+                color: #cdd6f4;
+                font-size: 32px;
+                font-weight: bold;
+                margin: 20px 0;
+            }
+        """
+        )
+        self.title_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+
+        # Texte de chargement
+        self.loading_label = QLabel("Chargement...")
+        self.loading_label.setStyleSheet(
+            """
+            QLabel {
+                color: #a6adc8;
+                font-size: 16px;
+            }
+        """
+        )
+        self.loading_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+
+        # Ajout des widgets au layout
+        layout.addWidget(self.logo_label)
+        layout.addWidget(self.title_label)
+        layout.addWidget(self.loading_label)
+
+        # Centrer la fenêtre
+        self.center_window()
+
+    def center_window(self):
+        """Centre la fenêtre sur l'écran"""
+        from PyQt6.QtGui import QApplication
+
+        screen = QApplication.primaryScreen().geometry()
+        x = (screen.width() - self.width()) // 2
+        y = (screen.height() - self.height()) // 2
+        self.move(x, y)
 
 
 if __name__ == "__main__":

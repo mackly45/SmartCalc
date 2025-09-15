@@ -1,831 +1,506 @@
+import math
+from typing import Optional, Tuple, Dict, List, Union
+
 from PyQt6.QtWidgets import (
     QWidget,
     QVBoxLayout,
     QHBoxLayout,
-    QTabWidget,
     QLabel,
     QLineEdit,
     QPushButton,
-    QTableWidget,
-    QTableWidgetItem,
     QComboBox,
-    QFileDialog,
     QMessageBox,
+    QTabWidget,
     QGroupBox,
     QFormLayout,
-    QSpinBox,
-    QDoubleSpinBox,
+    QTextEdit,
     QSplitter,
     QSizePolicy,
-    QTextEdit,
     QCheckBox,
 )
 from PyQt6.QtCore import Qt, pyqtSignal, QSize
 from PyQt6.QtGui import QFont, QColor, QPen, QPainter, QPixmap
+
+# Import matplotlib avec configuration pour Qt6
 import matplotlib
 
 matplotlib.use("Qt5Agg")
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
 from matplotlib.figure import Figure
 import numpy as np
-import sympy as sp
-
-
-class MplCanvas(FigureCanvas):
-    """Widget pour afficher les graphiques matplotlib"""
-
-    def __init__(self, parent=None, width=5, height=4, dpi=100):
-        self.fig = Figure(figsize=(width, height), dpi=dpi, facecolor="#1e1e2e")
-        self.axes = self.fig.add_subplot(111)
-        self.axes.set_facecolor("#1e1e2e")
-
-        # Style du graphique
-        self.axes.tick_params(axis="x", colors="#cdd6f4")
-        self.axes.tick_params(axis="y", colors="#cdd6f4")
-        self.axes.spines["bottom"].set_color("#585b70")
-        self.axes.spines["top"].set_color("#585b70")
-        self.axes.spines["right"].set_color("#585b70")
-        self.axes.spines["left"].set_color("#585b70")
-        self.axes.xaxis.label.set_color("#cdd6f4")
-        self.axes.yaxis.label.set_color("#cdd6f4")
-        self.axes.title.set_color("#cdd6f4")
-
-        super().__init__(self.fig)
-        self.setParent(parent)
-        self.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
-        self.updateGeometry()
+from sympy import symbols, sympify, diff, integrate, solve, limit, oo, series
 
 
 class AdvancedView(QWidget):
-    """Vue avancée pour les graphiques, matrices et factorisation"""
+    """
+    Vue pour les fonctionnalités avancées de la calculatrice.
+    Inclut des outils pour le calcul symbolique, les graphes, etc.
+    """
+
+    # Signaux
+    calculate_clicked = pyqtSignal(str, dict)  # expression, variables
+    plot_clicked = pyqtSignal(str, tuple, tuple)  # expr, x_range, y_range
+    solve_clicked = pyqtSignal(str, str)  # equation, variable
+    differentiate_clicked = pyqtSignal(str, str, int)  # expr, var, order
+    integrate_clicked = pyqtSignal(str, str, float, float)  # expr, var, a, b
+    limit_clicked = pyqtSignal(str, str, str, str)  # expr, var, point, direction
+    series_clicked = pyqtSignal(str, str, float, int)  # expr, var, point, order
 
     def __init__(self, parent=None):
         super().__init__(parent)
+        self.variables = {}
         self.setup_ui()
 
     def setup_ui(self):
-        """Configure l'interface utilisateur"""
+        """Configure l'interface utilisateur."""
         main_layout = QVBoxLayout(self)
-        main_layout.setContentsMargins(10, 10, 10, 10)
-        main_layout.setSpacing(10)
 
         # Création des onglets
         self.tabs = QTabWidget()
-        self.tabs.setStyleSheet(
-            """
-            QTabWidget::pane {
-                border: 1px solid #45475a;
-                border-radius: 5px;
-                background: #1e1e2e;
-            }
-            QTabBar::tab {
-                background: #313244;
-                color: #cdd6f4;
-                padding: 8px 15px;
-                border: none;
-                border-top-left-radius: 5px;
-                border-top-right-radius: 5px;
-                margin-right: 2px;
-            }
-            QTabBar::tab:selected {
-                background: #45475a;
-                border-bottom: 2px solid #89b4fa;
-            }
-            QTabBar::tab:hover:!selected {
-                background: #585b70;
-            }
-        """
-        )
+
+        # Onglet Calcul symbolique
+        self.symbolic_tab = QWidget()
+        self.setup_symbolic_tab()
 
         # Onglet Graphiques
-        self.setup_graph_tab()
+        self.plot_tab = QWidget()
+        self.setup_plot_tab()
 
-        # Onglet Matrices
-        self.setup_matrix_tab()
+        # Onglet Calcul différentiel
+        self.calculus_tab = QWidget()
+        self.setup_calculus_tab()
 
-        # Onglet Factorisation
-        self.setup_factorization_tab()
+        # Ajout des onglets
+        self.tabs.addTab(self.symbolic_tab, "Calcul symbolique")
+        self.tabs.addTab(self.plot_tab, "Graphiques")
+        self.tabs.addTab(self.calculus_tab, "Calcul différentiel")
 
+        # Bouton de retour
+        self.back_button = QPushButton("Retour à la calculatrice scientifique")
+        self.back_button.clicked.connect(self.go_back)
+
+        # Ajout des composants au layout principal
         main_layout.addWidget(self.tabs)
+        main_layout.addWidget(self.back_button)
 
-    def setup_graph_tab(self):
-        """Configure l'onglet des graphiques"""
-        tab = QWidget()
-        layout = QVBoxLayout(tab)
+    def setup_symbolic_tab(self):
+        """Configure l'onglet de calcul symbolique."""
+        layout = QVBoxLayout()
 
-        # Zone supérieure : Contrôles du graphique
-        controls_layout = QHBoxLayout()
-
-        # Sélection de la fonction
-        func_group = QGroupBox("Fonction")
-        func_layout = QFormLayout()
-
-        self.function_input = QLineEdit()
-        self.function_input.setPlaceholderText("Ex: sin(x), x^2, exp(x)")
-        func_layout.addRow("f(x) =", self.function_input)
-
-        # Plage de x
-        self.x_min = QDoubleSpinBox()
-        self.x_min.setRange(-1000, 1000)
-        self.x_min.setValue(-10)
-        self.x_max = QDoubleSpinBox()
-        self.x_max.setRange(-1000, 1000)
-        self.x_max.setValue(10)
-
-        range_layout = QHBoxLayout()
-        range_layout.addWidget(self.x_min)
-        range_layout.addWidget(QLabel("≤ x ≤"))
-        range_layout.addWidget(self.x_max)
-        func_layout.addRow("Intervalle x:", range_layout)
-
-        # Options du graphique
-        self.show_grid = QCheckBox("Afficher la grille")
-        self.show_grid.setChecked(True)
-        func_layout.addRow(self.show_grid)
-
-        self.show_legend = QCheckBox("Afficher la légende")
-        self.show_legend.setChecked(True)
-        func_layout.addRow(self.show_legend)
-
-        # Bouton de tracé
-        plot_btn = QPushButton("Tracer")
-        plot_btn.clicked.connect(self.plot_function)
-        plot_btn.setStyleSheet(
-            """
-            QPushButton {
-                background-color: #89b4fa;
-                color: #1e1e2e;
-                padding: 5px 15px;
-                border: none;
-                border-radius: 3px;
-                font-weight: bold;
-            }
-            QPushButton:hover {
-                background-color: #b4c9fc;
-            }
-        """
+        # Zone de saisie de l'expression
+        self.expression_input = QLineEdit()
+        self.expression_input.setPlaceholderText(
+            "Entrez une expression (ex: x**2 + 2*x + 1)"
         )
 
-        func_layout.addRow(plot_btn)
-        func_group.setLayout(func_layout)
-
-        # Options d'export
-        export_group = QGroupBox("Export")
-        export_layout = QVBoxLayout()
-
-        export_btn = QPushButton("Exporter le graphique")
-        export_btn.clicked.connect(self.export_plot)
-        export_btn.setStyleSheet(
-            """
-            QPushButton {
-                background-color: #a6e3a1;
-                color: #1e1e2e;
-                padding: 5px 10px;
-                border: none;
-                border-radius: 3px;
-            }
-            QPushButton:hover {
-                background-color: #b4e9b0;
-            }
-        """
-        )
-
-        export_layout.addWidget(export_btn)
-        export_group.setLayout(export_layout)
-
-        # Ajout des contrôles au layout
-        controls_layout.addWidget(func_group)
-        controls_layout.addWidget(export_group)
-
-        # Zone du graphique
-        self.canvas = MplCanvas(self, width=8, height=6, dpi=100)
-
-        # Zone de démonstration
-        demo_group = QGroupBox("Démonstration")
-        demo_layout = QVBoxLayout()
-
-        self.demo_text = QTextEdit()
-        self.demo_text.setReadOnly(True)
-        self.demo_text.setStyleSheet(
-            """
-            QTextEdit {
-                background-color: #1e1e2e;
-                color: #cdd6f4;
-                border: 1px solid #45475a;
-                border-radius: 3px;
-                padding: 5px;
-                font-family: monospace;
-            }
-        """
-        )
-
-        demo_layout.addWidget(self.demo_text)
-        demo_group.setLayout(demo_layout)
-
-        # Splitter pour redimensionner le graphique et la démo
-        splitter = QSplitter(Qt.Orientation.Vertical)
-        splitter.addWidget(self.canvas)
-        splitter.addWidget(demo_group)
-        splitter.setSizes([400, 150])
-
-        # Ajout au layout principal
-        layout.addLayout(controls_layout)
-        layout.addWidget(splitter)
-
-        # Ajout de l'onglet
-        self.tabs.addTab(tab, "Graphiques")
-
-    def setup_matrix_tab(self):
-        """Configure l'onglet des matrices"""
-        tab = QWidget()
-        layout = QVBoxLayout(tab)
-
-        # Contrôles des matrices
-        matrix_controls = QHBoxLayout()
-
-        # Sélection de la taille
-        size_group = QGroupBox("Taille des matrices")
-        size_layout = QHBoxLayout()
-
-        self.matrix_rows = QSpinBox()
-        self.matrix_rows.setRange(1, 10)
-        self.matrix_rows.setValue(3)
-        self.matrix_cols = QSpinBox()
-        self.matrix_cols.setRange(1, 10)
-        self.matrix_cols.setValue(3)
-
-        size_layout.addWidget(QLabel("Lignes:"))
-        size_layout.addWidget(self.matrix_rows)
-        size_layout.addStretch()
-        size_layout.addWidget(QLabel("Colonnes:"))
-        size_layout.addWidget(self.matrix_cols)
-
-        # Mise à jour des matrices lors du changement de taille
-        self.matrix_rows.valueChanged.connect(self.update_matrix_size)
-        self.matrix_cols.valueChanged.connect(self.update_matrix_size)
-
-        size_group.setLayout(size_layout)
-
-        # Opérations sur les matrices
-        ops_group = QGroupBox("Opérations")
-        ops_layout = QVBoxLayout()
-
-        # Boutons d'opérations
-        add_btn = QPushButton("Addition (A + B)")
-        sub_btn = QPushButton("Soustraction (A - B)")
-        mul_btn = QPushButton("Multiplication (A × B)")
-        det_btn = QPushButton("Déterminant")
-        inv_btn = QPushButton("Inverse")
-        trans_btn = QPushButton("Transposée")
-
-        # Style des boutons
-        button_style = """
-            QPushButton {
-                text-align: left;
-                padding: 5px 10px;
-                margin: 2px 0;
-                border: 1px solid #45475a;
-                border-radius: 3px;
-                background-color: #313244;
-                color: #cdd6f4;
-            }
-            QPushButton:hover {
-                background-color: #45475a;
-            }
-        """
-
-        for btn in [add_btn, sub_btn, mul_btn, det_btn, inv_btn, trans_btn]:
-            btn.setStyleSheet(button_style)
-            ops_layout.addWidget(btn)
-
-        ops_group.setLayout(ops_layout)
-
-        # Ajout des contrôles
-        matrix_controls.addWidget(size_group)
-        matrix_controls.addWidget(ops_group)
-
-        # Zone des matrices
-        matrix_area = QHBoxLayout()
-
-        # Matrice A
-        a_group = QGroupBox("Matrice A")
-        a_layout = QVBoxLayout()
-        self.matrix_a = QTableWidget()
-        self.matrix_a.setRowCount(3)
-        self.matrix_a.setColumnCount(3)
-        a_layout.addWidget(self.matrix_a)
-        a_group.setLayout(a_layout)
-
-        # Matrice B
-        b_group = QGroupBox("Matrice B")
-        b_layout = QVBoxLayout()
-        self.matrix_b = QTableWidget()
-        self.matrix_b.setRowCount(3)
-        self.matrix_b.setColumnCount(3)
-        b_layout.addWidget(self.matrix_b)
-        b_group.setLayout(b_layout)
-
-        # Matrice résultat
-        result_group = QGroupBox("Résultat")
-        result_layout = QVBoxLayout()
-        self.matrix_result = QTableWidget()
-        self.matrix_result.setRowCount(3)
-        self.matrix_result.setColumnCount(3)
-        result_layout.addWidget(self.matrix_result)
-        result_group.setLayout(result_layout)
-
-        # Style des tableaux
-        for table in [self.matrix_a, self.matrix_b, self.matrix_result]:
-            table.setStyleSheet(
-                """
-                QTableWidget {
-                    background-color: #1e1e2e;
-                    color: #cdd6f4;
-                    gridline-color: #45475a;
-                }
-                QHeaderView::section {
-                    background-color: #313244;
-                    color: #cdd6f4;
-                    padding: 5px;
-                    border: none;
-                }
-                QTableWidget::item {
-                    padding: 5px;
-                }
-                QTableWidget::item:selected {
-                    background-color: #45475a;
-                }
-            """
-            )
-
-        # Ajout des matrices au layout
-        matrix_area.addWidget(a_group)
-        matrix_area.addWidget(b_group)
-        matrix_area.addWidget(result_group)
-
-        # Zone de démonstration
-        demo_group = QGroupBox("Démonstration")
-        demo_layout = QVBoxLayout()
-
-        self.matrix_demo = QTextEdit()
-        self.matrix_demo.setReadOnly(True)
-        self.matrix_demo.setStyleSheet(
-            """
-            QTextEdit {
-                background-color: #1e1e2e;
-                color: #cdd6f4;
-                border: 1px solid #45475a;
-                border-radius: 3px;
-                padding: 5px;
-                font-family: monospace;
-            }
-        """
-        )
-
-        demo_layout.addWidget(self.matrix_demo)
-        demo_group.setLayout(demo_layout)
-
-        # Ajout au layout principal
-        layout.addLayout(matrix_controls)
-        layout.addLayout(matrix_area)
-        layout.addWidget(demo_group)
-
-        # Initialisation des matrices
-        self.init_matrices()
-
-        # Ajout de l'onglet
-        self.tabs.addTab(tab, "Matrices")
-
-    def setup_factorization_tab(self):
-        """Configure l'onglet de factorisation"""
-        tab = QWidget()
-        layout = QVBoxLayout(tab)
-
-        # Zone de saisie
-        input_group = QGroupBox("Expression à factoriser")
-        input_layout = QHBoxLayout()
-
-        self.factor_input = QLineEdit()
-        self.factor_input.setPlaceholderText("Ex: x^2 - 4, x^3 + 2x^2 - 5x - 6")
-
-        factor_btn = QPushButton("Factoriser")
-        factor_btn.clicked.connect(self.factor_expression)
-        factor_btn.setStyleSheet(
-            """
-            QPushButton {
-                background-color: #89b4fa;
-                color: #1e1e2e;
-                padding: 5px 15px;
-                border: none;
-                border-radius: 3px;
-                font-weight: bold;
-                min-width: 100px;
-            }
-            QPushButton:hover {
-                background-color: #b4c9fc;
-            }
-        """
-        )
-
-        input_layout.addWidget(self.factor_input)
-        input_layout.addWidget(factor_btn)
-        input_group.setLayout(input_layout)
+        # Bouton de calcul
+        self.calculate_button = QPushButton("Calculer")
+        self.calculate_button.clicked.connect(self.on_calculate_clicked)
 
         # Zone de résultat
-        result_group = QGroupBox("Résultat")
-        result_layout = QVBoxLayout()
+        self.result_display = QTextEdit()
+        self.result_display.setReadOnly(True)
 
-        self.factor_result = QTextEdit()
-        self.factor_result.setReadOnly(True)
-        self.factor_result.setStyleSheet(
-            """
-            QTextEdit {
-                background-color: #1e1e2e;
-                color: #a6e3a1;
-                border: 1px solid #45475a;
-                border-radius: 3px;
-                padding: 10px;
-                font-family: monospace;
-                font-size: 14px;
-            }
-        """
-        )
+        # Ajout des composants au layout
+        layout.addWidget(QLabel("Expression:"))
+        layout.addWidget(self.expression_input)
+        layout.addWidget(self.calculate_button)
+        layout.addWidget(QLabel("Résultat:"))
+        layout.addWidget(self.result_display)
 
-        result_layout.addWidget(self.factor_result)
-        result_group.setLayout(result_layout)
+        self.symbolic_tab.setLayout(layout)
 
-        # Zone de démonstration
-        demo_group = QGroupBox("Démonstration pas à pas")
-        demo_layout = QVBoxLayout()
+    def setup_plot_tab(self):
+        """Configure l'onglet de tracé de courbes."""
+        layout = QVBoxLayout()
 
-        self.factor_demo = QTextEdit()
-        self.factor_demo.setReadOnly(True)
-        self.factor_demo.setStyleSheet(
-            """
-            QTextEdit {
-                background-color: #1e1e2e;
-                color: #cdd6f4;
-                border: 1px solid #45475a;
-                border-radius: 3px;
-                padding: 10px;
-                font-family: monospace;
-            }
-        """
-        )
+        # Zone de saisie de la fonction
+        self.function_input = QLineEdit()
+        self.function_input.setPlaceholderText("f(x) = ")
 
-        demo_layout.addWidget(self.factor_demo)
-        demo_group.setLayout(demo_layout)
+        # Paramètres du graphe
+        params_layout = QHBoxLayout()
 
-        # Exemples
-        examples_group = QGroupBox("Exemples")
-        examples_layout = QHBoxLayout()
+        # Min X
+        self.min_x = QLineEdit("-10")
+        params_layout.addWidget(QLabel("X min:"))
+        params_layout.addWidget(self.min_x)
 
-        examples = ["x² - 4", "x³ - 6x² + 11x - 6", "x⁴ - 16", "2x² + 5x - 3"]
+        # Max X
+        self.max_x = QLineEdit("10")
+        params_layout.addWidget(QLabel("X max:"))
+        params_layout.addWidget(self.max_x)
 
-        for example in examples:
-            btn = QPushButton(example)
-            btn.clicked.connect(lambda _, e=example: self.factor_input.setText(e))
-            btn.setStyleSheet(
-                """
-                QPushButton {
-                    background-color: #313244;
-                    color: #cdd6f4;
-                    border: 1px solid #45475a;
-                    border-radius: 3px;
-                    padding: 5px 10px;
-                    margin: 2px;
-                }
-                QPushButton:hover {
-                    background-color: #45475a;
-                }
-            """
-            )
-            examples_layout.addWidget(btn)
+        # Bouton de tracé
+        self.plot_button = QPushButton("Tracer")
+        self.plot_button.clicked.connect(self.on_plot_clicked)
 
-        examples_group.setLayout(examples_layout)
+        # Zone d'affichage du graphe
+        self.figure = Figure(figsize=(5, 4), dpi=100)
+        self.canvas = FigureCanvas(self.figure)
 
-        # Ajout au layout principal
-        layout.addWidget(input_group)
-        layout.addWidget(result_group)
-        layout.addWidget(demo_group)
-        layout.addWidget(examples_group)
+        # Ajout des composants au layout
+        layout.addWidget(QLabel("Fonction à tracer:"))
+        layout.addWidget(self.function_input)
+        layout.addLayout(params_layout)
+        layout.addWidget(self.plot_button)
+        layout.addWidget(self.canvas)
 
-        # Ajout de l'onglet
-        self.tabs.addTab(tab, "Factorisation")
+        self.plot_tab.setLayout(layout)
 
-    # Méthodes pour les graphiques
-    def plot_function(self):
-        """Trace la fonction saisie"""
-        try:
-            expr = self.function_input.text().strip()
-            if not expr:
-                return
+    def setup_calculus_tab(self):
+        """Configure l'onglet de calcul différentiel."""
+        tabs = QTabWidget()
 
-            # Nettoyer l'expression
-            expr = expr.replace("^", "**").replace(" ", "")
+        # Sous-onglet Dérivée
+        self.derivative_tab = QWidget()
+        self.setup_derivative_tab()
 
-            # Créer un tableau de valeurs x
-            x = np.linspace(self.x_min.value(), self.x_max.value(), 1000)
+        # Sous-onglet Intégrale
+        self.integral_tab = QWidget()
+        self.setup_integral_tab()
 
-            # Évaluer l'expression
-            y = eval(
-                expr,
-                {
-                    "x": x,
-                    "sin": np.sin,
-                    "cos": np.cos,
-                    "tan": np.tan,
-                    "exp": np.exp,
-                    "log": np.log,
-                    "sqrt": np.sqrt,
-                    "pi": np.pi,
-                    "e": np.e,
-                },
-            )
+        # Sous-onglet Limite
+        self.limit_tab = QWidget()
+        self.setup_limit_tab()
 
-            # Tracer la fonction
-            self.canvas.axes.clear()
-            self.canvas.axes.plot(x, y, label=f"${self.format_math_expr(expr)}$")
+        # Sous-onglet Série
+        self.series_tab = QWidget()
+        self.setup_series_tab()
 
-            # Mise en forme
-            self.canvas.axes.set_xlabel("x")
-            self.canvas.axes.set_ylabel("f(x)")
-            self.canvas.axes.set_title(f"Fonction: ${self.format_math_expr(expr)}$")
+        # Ajout des sous-onglets
+        tabs.addTab(self.derivative_tab, "Dérivée")
+        tabs.addTab(self.integral_tab, "Intégrale")
+        tabs.addTab(self.limit_tab, "Limite")
+        tabs.addTab(self.series_tab, "Série")
 
-            if self.show_grid.isChecked():
-                self.canvas.axes.grid(True, linestyle="--", alpha=0.7)
+        # Layout principal
+        layout = QVBoxLayout()
+        layout.addWidget(tabs)
+        self.calculus_tab.setLayout(layout)
 
-            if self.show_legend.isChecked():
-                self.canvas.axes.legend()
+    def setup_derivative_tab(self):
+        """Configure le sous-onglet de calcul de dérivée."""
+        layout = QVBoxLayout()
 
-            # Mise à jour du canvas
-            self.canvas.draw()
+        # Expression
+        self.deriv_expression = QLineEdit()
+        self.deriv_expression.setPlaceholderText("Entrez une expression (ex: x**2)")
 
-            # Mise à jour de la démonstration
-            self.update_demo(expr)
+        # Variable
+        self.deriv_var = QLineEdit("x")
 
-        except Exception as e:
-            QMessageBox.critical(self, "Erreur", f"Erreur lors du tracé: {str(e)}")
+        # Ordre de dérivation
+        self.deriv_order = QLineEdit("1")
 
-    def export_plot(self):
-        """Exporte le graphique dans un fichier"""
-        if not hasattr(self, "canvas") or not self.canvas.fig.axes:
+        # Bouton de calcul
+        self.deriv_button = QPushButton("Calculer la dérivée")
+        self.deriv_button.clicked.connect(self.on_derivative_clicked)
+
+        # Résultat
+        self.deriv_result = QTextEdit()
+        self.deriv_result.setReadOnly(True)
+
+        # Formulaire de paramètres
+        form = QFormLayout()
+        form.addRow("Expression:", self.deriv_expression)
+        form.addRow("Variable:", self.deriv_var)
+        form.addRow("Ordre:", self.deriv_order)
+
+        # Ajout des composants au layout
+        layout.addLayout(form)
+        layout.addWidget(self.deriv_button)
+        layout.addWidget(QLabel("Résultat:"))
+        layout.addWidget(self.deriv_result)
+
+        self.derivative_tab.setLayout(layout)
+
+    def setup_integral_tab(self):
+        """Configure le sous-onglet de calcul d'intégrale."""
+        layout = QVBoxLayout()
+
+        # Expression
+        self.integral_expression = QLineEdit()
+        self.integral_expression.setPlaceholderText("Entrez une expression (ex: x**2)")
+
+        # Variable
+        self.integral_var = QLineEdit("x")
+
+        # Bornes
+        self.lower_bound = QLineEdit("0")
+        self.upper_bound = QLineEdit("1")
+
+        # Case à cocher pour l'intégrale indéfinie
+        self.indefinite_integral = QCheckBox("Intégrale indéfinie")
+        self.indefinite_integral.stateChanged.connect(self.toggle_definite_integral)
+
+        # Bouton de calcul
+        self.integral_button = QPushButton("Calculer l'intégrale")
+        self.integral_button.clicked.connect(self.on_integral_clicked)
+
+        # Résultat
+        self.integral_result = QTextEdit()
+        self.integral_result.setReadOnly(True)
+
+        # Formulaire de paramètres
+        form = QFormLayout()
+        form.addRow("Expression:", self.integral_expression)
+        form.addRow("Variable:", self.integral_var)
+        form.addRow("Borne inférieure:", self.lower_bound)
+        form.addRow("Borne supérieure:", self.upper_bound)
+
+        # Ajout des composants au layout
+        layout.addLayout(form)
+        layout.addWidget(self.indefinite_integral)
+        layout.addWidget(self.integral_button)
+        layout.addWidget(QLabel("Résultat:"))
+        layout.addWidget(self.integral_result)
+
+        self.integral_tab.setLayout(layout)
+
+    def setup_limit_tab(self):
+        """Configure le sous-onglet de calcul de limite."""
+        layout = QVBoxLayout()
+
+        # Expression
+        self.limit_expression = QLineEdit()
+        self.limit_expression.setPlaceholderText("Entrez une expression (ex: sin(x)/x)")
+
+        # Variable et point
+        self.limit_var = QLineEdit("x")
+        self.limit_point = QLineEdit("0")
+
+        # Direction
+        self.limit_direction = QComboBox()
+        self.limit_direction.addItems(["+", "-"])
+
+        # Bouton de calcul
+        self.limit_button = QPushButton("Calculer la limite")
+        self.limit_button.clicked.connect(self.on_limit_clicked)
+
+        # Résultat
+        self.limit_result = QTextEdit()
+        self.limit_result.setReadOnly(True)
+
+        # Formulaire de paramètres
+        form = QFormLayout()
+        form.addRow("Expression:", self.limit_expression)
+        form.addRow("Variable:", self.limit_var)
+        form.addRow("Point:", self.limit_point)
+        form.addRow("Direction:", self.limit_direction)
+
+        # Ajout des composants au layout
+        layout.addLayout(form)
+        layout.addWidget(self.limit_button)
+        layout.addWidget(QLabel("Résultat:"))
+        layout.addWidget(self.limit_result)
+
+        self.limit_tab.setLayout(layout)
+
+    def setup_series_tab(self):
+        """Configure le sous-onglet de développement en série."""
+        layout = QVBoxLayout()
+
+        # Expression
+        self.series_expression = QLineEdit()
+        self.series_expression.setPlaceholderText("Entrez une expression (ex: exp(x))")
+
+        # Variable et point
+        self.series_var = QLineEdit("x")
+        self.series_point = QLineEdit("0")
+
+        # Ordre
+        self.series_order = QLineEdit("5")
+
+        # Bouton de calcul
+        self.series_button = QPushButton("Développer en série")
+        self.series_button.clicked.connect(self.on_series_clicked)
+
+        # Résultat
+        self.series_result = QTextEdit()
+        self.series_result.setReadOnly(True)
+
+        # Formulaire de paramètres
+        form = QFormLayout()
+        form.addRow("Expression:", self.series_expression)
+        form.addRow("Variable:", self.series_var)
+        form.addRow("Point:", self.series_point)
+        form.addRow("Ordre:", self.series_order)
+
+        # Ajout des composants au layout
+        layout.addLayout(form)
+        layout.addWidget(self.series_button)
+        layout.addWidget(QLabel("Développement en série:"))
+        layout.addWidget(self.series_result)
+
+        self.series_tab.setLayout(layout)
+
+    def toggle_definite_integral(self, state):
+        """Active/désactive les champs de bornes pour l'intégrale."""
+        self.lower_bound.setEnabled(not bool(state))
+        self.upper_bound.setEnabled(not bool(state))
+
+    def on_calculate_clicked(self):
+        """Gère le clic sur le bouton de calcul."""
+        expression = self.expression_input.text().strip()
+        if expression:
+            self.calculate_clicked.emit(expression, self.variables)
+
+    def on_plot_clicked(self):
+        """Gère le clic sur le bouton de tracé."""
+        expression = self.function_input.text().strip()
+        if not expression:
             return
 
-        file_path, _ = QFileDialog.getSaveFileName(
-            self,
-            "Exporter le graphique",
-            "",
-            "Images (*.png *.jpg *.pdf);;Tous les fichiers (*)",
-        )
+        try:
+            x_min = float(self.min_x.text())
+            x_max = float(self.max_x.text())
 
-        if file_path:
+            if x_min >= x_max:
+                QMessageBox.warning(
+                    self,
+                    "Erreur",
+                    "La valeur minimale doit être inférieure à la valeur maximale",
+                )
+                return
+
+            self.plot_clicked.emit(
+                expression,
+                (x_min, x_max),
+                (None, None),  # y_range sera déterminé automatiquement
+            )
+
+        except ValueError:
+            QMessageBox.warning(
+                self,
+                "Erreur",
+                "Veuillez entrer des valeurs numériques valides pour les bornes",
+            )
+
+    def on_derivative_clicked(self):
+        """Gère le clic sur le bouton de calcul de dérivée."""
+        expression = self.deriv_expression.text().strip()
+        variable = self.deriv_var.text().strip()
+
+        if not expression or not variable:
+            return
+
+        try:
+            order = int(self.deriv_order.text())
+            if order < 1:
+                raise ValueError("L'ordre doit être un entier positif")
+
+            self.differentiate_clicked.emit(expression, variable, order)
+
+        except ValueError as e:
+            QMessageBox.warning(
+                self, "Erreur", f"Ordre de dérivation invalide: {str(e)}"
+            )
+
+    def on_integral_clicked(self):
+        """Gère le clic sur le bouton de calcul d'intégrale."""
+        expression = self.integral_expression.text().strip()
+        variable = self.integral_var.text().strip()
+
+        if not expression or not variable:
+            return
+
+        if self.indefinite_integral.isChecked():
+            # Intégrale indéfinie
+            self.integrate_clicked.emit(expression, variable, None, None)
+        else:
+            # Intégrale définie
             try:
-                self.canvas.fig.savefig(
-                    file_path, dpi=300, bbox_inches="tight", facecolor="#1e1e2e"
-                )
-                QMessageBox.information(
-                    self, "Succès", "Le graphique a été exporté avec succès."
-                )
-            except Exception as e:
-                QMessageBox.critical(
-                    self, "Erreur", f"Erreur lors de l'export: {str(e)}"
+                a = float(self.lower_bound.text())
+                b = float(self.upper_bound.text())
+                self.integrate_clicked.emit(expression, variable, a, b)
+
+            except ValueError:
+                QMessageBox.warning(
+                    self, "Erreur", "Veuillez entrer des bornes numériques valides"
                 )
 
-    def update_demo(self, expr):
-        """Met à jour la démonstration pour le graphique"""
+    def on_limit_clicked(self):
+        """Gère le clic sur le bouton de calcul de limite."""
+        expression = self.limit_expression.text().strip()
+        variable = self.limit_var.text().strip()
+        point = self.limit_point.text().strip()
+
+        if not expression or not variable or not point:
+            return
+
+        direction = self.limit_direction.currentText()
+        self.limit_clicked.emit(expression, variable, point, direction)
+
+    def on_series_clicked(self):
+        """Gère le clic sur le bouton de développement en série."""
+        expression = self.series_expression.text().strip()
+        variable = self.series_var.text().strip()
+        point = self.series_point.text().strip()
+
+        if not expression or not variable or not point:
+            return
+
         try:
-            x = sp.symbols("x")
-            expr_sympy = sp.sympify(expr.replace("^", "**"))
+            point_val = float(point)
+            order = int(self.series_order.text())
 
-            # Calculer la dérivée
-            derivative = sp.diff(expr_sympy, x)
+            if order < 1:
+                raise ValueError("L'ordre doit être un entier positif")
 
-            # Calculer les racines
-            roots = sp.solve(expr_sympy, x)
+            self.series_clicked.emit(expression, variable, point_val, order)
 
-            # Calculer les points critiques
-            critical_points = sp.solve(derivative, x)
+        except ValueError as e:
+            QMessageBox.warning(self, "Erreur", f"Valeurs invalides: {str(e)}")
 
-            # Préparer le texte de démonstration
-            demo_text = f"""Analyse de la fonction f(x) = {sp.latex(expr_sympy)}
+    def show_result(self, result: str):
+        """Affiche le résultat du calcul."""
+        self.result_display.setText(result)
 
-Dérivée: f'(x) = {sp.latex(derivative)}
+    def show_derivative_result(self, result: str):
+        """Affiche le résultat de la dérivation."""
+        self.deriv_result.setText(result)
 
-Racines (f(x) = 0):
-"""
-            if roots:
-                for i, root in enumerate(roots, 1):
-                    demo_text += f"x{i} = {sp.latex(root)}\n"
-            else:
-                demo_text += "Aucune racine réelle\n"
+    def show_integral_result(self, result: str):
+        """Affiche le résultat de l'intégration."""
+        self.integral_result.setText(result)
 
-            demo_text += "\nPoints critiques (f'(x) = 0):\n"
-            if critical_points:
-                for i, point in enumerate(critical_points, 1):
-                    demo_text += f"x{i} = {sp.latex(point)}\n"
-            else:
-                demo_text += "Aucun point critique\n"
+    def show_limit_result(self, result: str):
+        """Affiche le résultat du calcul de limite."""
+        self.limit_result.setText(result)
 
-            self.demo_text.setPlainText(demo_text)
+    def show_series_result(self, result: str):
+        """Affiche le résultat du développement en série."""
+        self.series_result.setText(result)
 
-        except Exception as e:
-            self.demo_text.setPlainText(
-                f"Erreur lors de l'analyse de la fonction: {str(e)}"
-            )
+    def plot_function(self, x: list, y: list, expression: str):
+        """Trace la fonction sur le canevas."""
+        # Effacer la figure précédente
+        self.figure.clear()
 
-    def format_math_expr(self, expr):
-        """Formate une expression mathématique pour l'affichage"""
-        return expr.replace("**", "^").replace("*", "·")
+        # Créer un nouvel axe
+        ax = self.figure.add_subplot(111)
 
-    # Méthodes pour les matrices
-    def init_matrices(self):
-        """Initialise les tableaux de matrices"""
-        self.update_matrix_size()
+        # Tracer la fonction
+        ax.plot(x, y, "b-", linewidth=2)
 
-    def update_matrix_size(self):
-        """Met à jour la taille des matrices"""
-        rows = self.matrix_rows.value()
-        cols = self.matrix_cols.value()
+        # Ajouter des étiquettes et un titre
+        ax.set_xlabel("x")
+        ax.set_ylabel("y")
+        ax.set_title(f"Graphe de {expression}")
 
-        for matrix in [self.matrix_a, self.matrix_b]:
-            matrix.setRowCount(rows)
-            matrix.setColumnCount(cols)
+        # Activer la grille
+        ax.grid(True)
 
-            # Remplir avec des zéros
-            for i in range(rows):
-                for j in range(cols):
-                    # Vérifier si l'item existe déjà
-                    if matrix.item(i, j) is None:
-                        item = QTableWidgetItem("0")
-                        item.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
-                        matrix.setItem(i, j, item)
+        # Redessiner le canevas
+        self.canvas.draw()
 
-        # Mettre à jour la matrice résultat
-        self.matrix_result.setRowCount(rows)
-        self.matrix_result.setColumnCount(cols)
+    def show_error(self, message: str):
+        """Affiche un message d'erreur."""
+        QMessageBox.critical(self, "Erreur", message)
 
-    def get_matrix_from_table(self, table):
-        """Récupère une matrice depuis un QTableWidget"""
-        try:
-            rows = table.rowCount()
-            cols = table.columnCount()
-            matrix = np.zeros((rows, cols))
-
-            for i in range(rows):
-                for j in range(cols):
-                    item = table.item(i, j)
-                    if item is not None and item.text().strip():
-                        try:
-                            matrix[i, j] = float(item.text())
-                        except ValueError:
-                            QMessageBox.warning(
-                                self,
-                                "Erreur",
-                                f"Valeur invalide en position ({i+1}, {j+1})",
-                            )
-                            return None
-
-            return matrix
-
-        except Exception as e:
-            QMessageBox.critical(
-                self, "Erreur", f"Erreur lors de la lecture de la matrice: {str(e)}"
-            )
-            return None
-
-    def set_matrix_to_table(self, matrix, table):
-        """Affiche une matrice dans un QTableWidget"""
-        try:
-            if matrix is None or not isinstance(matrix, np.ndarray):
-                return
-
-            rows, cols = matrix.shape
-            table.setRowCount(rows)
-            table.setColumnCount(cols)
-
-            for i in range(rows):
-                for j in range(cols):
-                    try:
-                        # Formater le nombre avec 2 décimales
-                        value = float(matrix[i, j])
-                        item = QTableWidgetItem(f"{value:.2f}")
-                        item.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
-                        table.setItem(i, j, item)
-                    except (ValueError, TypeError) as e:
-                        # En cas d'erreur, afficher une cellule vide
-                        item = QTableWidgetItem("")
-                        item.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
-                        table.setItem(i, j, item)
-
-        except Exception as e:
-            QMessageBox.critical(
-                self, "Erreur", f"Erreur lors de l'affichage de la matrice: {str(e)}"
-            )
-
-    # Méthodes pour la factorisation
-    def factor_expression(self):
-        """Factorise l'expression saisie"""
-        try:
-            expr = self.factor_input.text().strip()
-            if not expr:
-                return
-
-            # Nettoyer l'expression
-            expr = expr.replace("^", "**").replace(" ", "")
-
-            # Convertir en expression sympy
-            x = sp.symbols("x")
-            try:
-                expr_sympy = sp.sympify(expr)
-            except Exception as e:
-                QMessageBox.warning(self, "Erreur", f"Expression invalide: {str(e)}")
-                return
-
-            # Factoriser
-            factored = sp.factor(expr_sympy)
-
-            # Afficher le résultat
-            self.factor_result.setPlainText(
-                f"{sp.latex(expr_sympy)} = {sp.latex(factored)}"
-            )
-
-            # Mettre à jour la démonstration
-            self.update_factorization_demo(expr_sympy, factored)
-
-        except Exception as e:
-            QMessageBox.critical(
-                self, "Erreur", f"Erreur lors de la factorisation: {str(e)}"
-            )
-
-    def update_factorization_demo(self, expr, factored):
-        """Met à jour la démonstration pour la factorisation"""
-        try:
-            # Définir le symbole x au début de la méthode
-            x = sp.Symbol("x")
-
-            demo_text = f"Étapes de factorisation pour {sp.latex(expr)}:\n\n"
-
-            # Si l'expression est déjà factorisée
-            if expr == factored:
-                demo_text += "L'expression est déjà sous sa forme factorisée.\n"
-            else:
-                # Afficher les étapes intermédiaires
-                demo_text += "1. Expression originale: " + sp.latex(expr) + "\n"
-
-                # Si c'est une différence de carrés
-                if expr.is_Add and len(expr.args) == 2:
-                    a_sq = None
-                    b_sq = None
-
-                    for term in expr.args:
-                        if term.is_Pow and term.args[1] == 2:
-                            if a_sq is None:
-                                a_sq = term.args[0]
-                            else:
-                                b_sq = term.args[0]
-
-                    if a_sq is not None and b_sq is not None:
-                        demo_text += f"2. Reconnaissance d'une différence de carrés: {sp.latex(a_sq**2 - b_sq**2)}\n"
-                        demo_text += f"3. Application de l'identité remarquable: a² - b² = (a - b)(a + b)\n"
-                        demo_text += f"4. Résultat: {sp.latex(factored)}\n"
-
-                # Si c'est un trinôme du second degré
-                elif expr.is_Polynomial and sp.degree(expr) == 2:
-                    a, b, c = sp.Poly(expr, x).all_coeffs()
-                    delta = b**2 - 4 * a * c
-
-                    demo_text += f"2. Calcul du discriminant: Δ = b² - 4ac = {b}² - 4·{a}·{c} = {delta}\n"
-
-                    if delta > 0:
-                        x1 = (-b + sp.sqrt(delta)) / (2 * a)
-                        x2 = (-b - sp.sqrt(delta)) / (2 * a)
-                        demo_text += f"3. Racines réelles: x1 = {sp.latex(x1)}, x2 = {sp.latex(x2)}\n"
-                        demo_text += f"4. Forme factorisée: {a}(x - ({sp.latex(x1)}))(x - ({sp.latex(x2)}))\n"
-                    elif delta == 0:
-                        x0 = -b / (2 * a)
-                        demo_text += f"3. Racine double: x0 = {sp.latex(x0)}\n"
-                        demo_text += (
-                            f"4. Forme factorisée: {a}(x - ({sp.latex(x0)}))²\n"
-                        )
-                    else:
-                        demo_text += "3. Pas de racines réelles (Δ < 0)\n"
-                        demo_text += "4. La factorisation dans ℝ n'est pas possible\n"
-
-                # Autres cas
-                else:
-                    demo_text += "2. Recherche de facteurs communs...\n"
-                    demo_text += "3. Application des identités remarquables...\n"
-                    demo_text += f"4. Forme factorisée: {sp.latex(factored)}\n"
-                demo_text += f"\nVérification du résultat:\n"
-                # Vérification du résultat
-                expanded = sp.expand(factored)
-                if sp.simplify(expr - expanded) == 0:
-                    demo_text += f"✓ Vérification réussie: {sp.latex(expr)} = {sp.latex(expanded)}"
-                else:
-                    demo_text += f"❌ Erreur: {sp.latex(expr)} ≠ {sp.latex(expanded)}"
-
-            self.factor_demo.setPlainText(demo_text)
-
-        except Exception as e:
-            self.factor_demo.setPlainText(f"Erreur lors de la démonstration: {str(e)}")
+    def go_back(self):
+        """Retourne à la vue précédente."""
+        self.hide()
+        if hasattr(self, "parent") and self.parent():
+            self.parent().show()

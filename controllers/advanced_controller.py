@@ -11,13 +11,13 @@ from matplotlib.backends.backend_qt5agg import FigureCanvas
 class AdvancedController(QObject):
     """
     Contrôleur pour les fonctionnalités avancées de la calculatrice.
-    Gère les opérations avancées comme les calculs symboliques, les graphiques.
+    Gère les opérations avancées comme les calculs symboliques.
     """
 
     # Signaux
-    calculation_complete = QObject().pyqtSignal(str, str)  # expression, résultat
-    error_occurred = QObject().pyqtSignal(str)  # message d'erreur
-    graph_updated = QObject().pyqtSignal(QPixmap)  # image du graphique
+    calculation_complete = QObject().pyqtSignal(str, str)
+    error_occurred = QObject().pyqtSignal(str)
+    graph_updated = QObject().pyqtSignal(QPixmap)
 
     def __init__(self, model, view):
         super().__init__()
@@ -49,9 +49,8 @@ class AdvancedController(QObject):
             for var, val in variables.items():
                 expression = expression.replace(var, str(val))
 
-            result = str(
-                eval(expression, {"__builtins__": None}, self._get_math_functions())
-            )
+            math_funcs = self._get_math_functions()
+            result = str(eval(expression, {"__builtins__": None}, math_funcs))
 
             self.calculation_complete.emit(expression, result)
 
@@ -88,11 +87,9 @@ class AdvancedController(QObject):
         """
         try:
             x = np.linspace(x_range[0], x_range[1], 1000)
-            y = eval(
-                expression,
-                {"__builtins__": None},
-                {"x": x, **self._get_math_functions()},
-            )
+            math_funcs = self._get_math_functions()
+            math_funcs["x"] = x
+            y = eval(expression, {"__builtins__": None}, math_funcs)
 
             fig, ax = plt.subplots()
             ax.plot(x, y)
@@ -129,7 +126,8 @@ class AdvancedController(QObject):
             )
 
         except Exception as e:
-            self.error_occurred.emit(f"Erreur lors de la résolution: {str(e)}")
+            msg = f"Erreur lors de la résolution: {str(e)}"
+            self.error_occurred.emit(msg)
 
     def differentiate_expression(
         self, expression: str, variable: str = "x", order: int = 1
@@ -139,7 +137,7 @@ class AdvancedController(QObject):
 
         Args:
             expression: L'expression à dériver
-            variable: La variable de dérivation (par défaut: 'x')
+            variable: Variable de dérivation (par défaut: 'x')
             order: Ordre de dérivation (par défaut: 1)
         """
         try:
@@ -147,8 +145,8 @@ class AdvancedController(QObject):
             derivative = diff(expr, Symbol(variable), order)
 
             self.calculation_complete.emit(
-                f"Dérivée d'ordre {order} de {expression} " f"par rapport à {variable}",
-                f"Résultat: {derivative}",
+                f"Dérivée d'ordre {order} de {expression}",
+                f"par rapport à {variable}: {derivative}",
             )
 
         except Exception as e:
@@ -168,8 +166,8 @@ class AdvancedController(QObject):
         Args:
             expression: L'expression à intégrer
             variable: Variable d'intégration (par défaut: 'x')
-            lower: Borne inférieure (intégrale définie si fournie)
-            upper: Borne supérieure (intégrale définie si fournie)
+            lower: Borne inférieure (optionnel)
+            upper: Borne supérieure (optionnel)
         """
         try:
             expr = parse_expr(expression)
@@ -236,10 +234,10 @@ class AdvancedController(QObject):
             series = expr.series(Symbol(variable), point, order).removeO()
 
             self.calculation_complete.emit(
-                f"Développement en série de {expression} autour de {point}",
-                f"Résultat: {series}",
+                f"Développement en série de {expression}",
+                f"autour de {point}: {series}",
             )
 
         except Exception as e:
-            msg = f"Erreur lors du calcul du développement en série: {str(e)}"
+            msg = f"Erreur lors du calcul du développement: {str(e)}"
             self.error_occurred.emit(msg)
