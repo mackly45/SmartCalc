@@ -1,227 +1,291 @@
-from PyQt6.QtCore import QObject, pyqtSignal, pyqtSlot
+from PyQt6.QtCore import QObject
+from PyQt6.QtGui import QPixmap
 import numpy as np
 import sympy as sp
+from sympy.parsing.sympy_parser import parse_expr
+from sympy.parsing.latex import parse_latex
+from sympy import (
+    Symbol,
+    diff,
+    integrate,
+    solve,
+    limit,
+    oo,
+    exp,
+    log,
+    sin,
+    cos,
+    tan,
+    sqrt,
+    pi,
+    E,
+    I,
+)
+import re
+from typing import List, Dict, Any, Tuple, Union, Optional
+import matplotlib.pyplot as plt
+from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
 
 
 class AdvancedController(QObject):
-    """Contrôleur pour la vue avancée (graphiques, matrices, factorisation)"""
+    """
+    Contrôleur pour les fonctionnalités avancées de la calculatrice.
+    Gère les opérations avancées comme les calculs symboliques, les graphiques, etc.
+    """
+
+    # Signaux
+    calculation_complete = QObject().pyqtSignal(str, str)  # expression, résultat
+    error_occurred = QObject().pyqtSignal(str)  # message d'erreur
+    graph_updated = QObject().pyqtSignal(QPixmap)  # image du graphique
 
     def __init__(self, model, view):
-        """
-        Initialise le contrôleur
-
-        Args:
-            model: Instance de AdvancedCalculatorModel
-            view: Instance de AdvancedView
-        """
         super().__init__()
         self.model = model
         self.view = view
+        self.connect_signals()
 
-        # Connecter les signaux du modèle
-        self.model.plot_updated.connect(self.on_plot_updated)
-        self.model.matrix_operation_completed.connect(
-            self.on_matrix_operation_completed
-        )
-        self.model.factorization_completed.connect(self.on_factorization_completed)
-        self.model.error_occurred.connect(self.on_error_occurred)
+    def connect_signals(self):
+        """Connecte les signaux de la vue aux méthodes du contrôleur"""
+        self.view.calculate_clicked.connect(self.calculate_expression)
+        self.view.plot_clicked.connect(self.plot_expression)
+        self.view.solve_clicked.connect(self.solve_equation)
+        self.view.differentiate_clicked.connect(self.differentiate_expression)
+        self.view.integrate_clicked.connect(self.integrate_expression)
+        self.view.limit_clicked.connect(self.calculate_limit)
+        self.view.series_clicked.connect(self.calculate_series)
 
-        # Connecter les signaux de la vue
-        self.setup_connections()
+    def calculate_expression(
+        self, expression: str, variables: Dict[str, float]
+    ) -> None:
+        """
+        Calcule la valeur d'une expression avec les variables fournies.
 
-    def setup_connections(self):
-        """Établit les connexions entre la vue et le contrôleur"""
-        # Connexions pour les graphiques
-        if hasattr(self.view, "plot_button"):
-            self.view.plot_button.clicked.connect(self.on_plot_requested)
-
-        # Connexions pour les matrices
-        if hasattr(self.view, "matrix_add_button"):
-            self.view.matrix_add_button.clicked.connect(self.on_matrix_add)
-        if hasattr(self.view, "matrix_multiply_button"):
-            self.view.matrix_multiply_button.clicked.connect(self.on_matrix_multiply)
-        if hasattr(self.view, "matrix_determinant_button"):
-            self.view.matrix_determinant_button.clicked.connect(
-                self.on_matrix_determinant
-            )
-        if hasattr(self.view, "matrix_inverse_button"):
-            self.view.matrix_inverse_button.clicked.connect(self.on_matrix_inverse)
-
-        # Connexions pour la factorisation
-        if hasattr(self.view, "factorize_button"):
-            self.view.factorize_button.clicked.connect(self.on_factorize_requested)
-
-    # Gestion des événements des graphiques
-    @pyqtSlot()
-    def on_plot_requested(self):
-        """Appelé lorsque l'utilisateur demande un tracé"""
+        Args:
+            expression: L'expression à évaluer
+            variables: Dictionnaire des variables et leurs valeurs
+        """
         try:
-            expression = self.view.get_expression()
-            x_min = self.view.get_x_min()
-            x_max = self.view.get_x_max()
+            # Remplace les variables par leurs valeurs
+            for var, val in variables.items():
+                expression = expression.replace(var, str(val))
 
-            if not expression:
-                self.view.show_error("Veuillez entrer une expression")
-                return
-
-            self.model.plot_function(expression, x_min, x_max)
-
-        except Exception as e:
-            self.view.show_error(f"Erreur lors de la préparation du tracé: {str(e)}")
-
-    @pyqtSlot(np.ndarray, np.ndarray)
-    def on_plot_updated(self, x, y):
-        """Appelé lorsque le tracé est mis à jour"""
-        self.view.update_plot(x, y)
-        self.model.add_to_history(
-            "Tracé de fonction",
-            {
-                "expression": self.view.get_expression(),
-                "x_min": self.view.get_x_min(),
-                "x_max": self.view.get_x_max(),
-            },
-            f"Tracé de {self.view.get_expression()} sur [{self.view.get_x_min()}, {self.view.get_x_max()}]",
-        )
-
-    # Gestion des événements des matrices
-    @pyqtSlot()
-    def on_matrix_add(self):
-        """Gère l'addition de matrices"""
-        try:
-            matrix_a = self.view.get_matrix_a()
-            matrix_b = self.view.get_matrix_b()
-
-            if not matrix_a or not matrix_b:
-                self.view.show_error("Les deux matrices doivent être définies")
-                return
-
-            self.model.set_matrix_a(matrix_a)
-            self.model.set_matrix_b(matrix_b)
-            self.model.add_matrices()
-
-        except Exception as e:
-            self.view.show_error(f"Erreur lors de l'addition des matrices: {str(e)}")
-
-    @pyqtSlot()
-    def on_matrix_multiply(self):
-        """Gère la multiplication de matrices"""
-        try:
-            matrix_a = self.view.get_matrix_a()
-            matrix_b = self.view.get_matrix_b()
-
-            if not matrix_a or not matrix_b:
-                self.view.show_error("Les deux matrices doivent être définies")
-                return
-
-            self.model.set_matrix_a(matrix_a)
-            self.model.set_matrix_b(matrix_b)
-            self.model.multiply_matrices()
-
-        except Exception as e:
-            self.view.show_error(
-                f"Erreur lors de la multiplication des matrices: {str(e)}"
+            # Évalue l'expression de manière sécurisée
+            result = str(
+                eval(
+                    expression,
+                    {"__builtins__": None},
+                    {
+                        "sin": np.sin,
+                        "cos": np.cos,
+                        "tan": np.tan,
+                        "exp": np.exp,
+                        "log": np.log,
+                        "sqrt": np.sqrt,
+                        "pi": np.pi,
+                        "e": np.e,
+                        "j": 1j,
+                    },
+                )
             )
 
-    @pyqtSlot()
-    def on_matrix_determinant(self):
-        """Calcule le déterminant d'une matrice"""
-        try:
-            matrix = self.view.get_matrix_a()
-            if matrix is None:
-                matrix = self.view.get_matrix_b()
-
-            if matrix is None:
-                self.view.show_error("Aucune matrice définie")
-                return
-
-            det = self.model.calculate_determinant(np.array(matrix))
-            if det is not None:
-                self.view.show_result(f"Déterminant: {det:.4f}")
-                self.model.add_to_history(
-                    "Calcul du déterminant",
-                    {"matrix": matrix},
-                    f"Déterminant = {det:.4f}",
-                )
+            self.calculation_complete.emit(expression, result)
 
         except Exception as e:
-            self.view.show_error(f"Erreur lors du calcul du déterminant: {str(e)}")
+            self.error_occurred.emit(f"Erreur de calcul: {str(e)}")
 
-    @pyqtSlot()
-    def on_matrix_inverse(self):
-        """Calcule l'inverse d'une matrice"""
+    def plot_expression(
+        self,
+        expression: str,
+        x_range: Tuple[float, float],
+        y_range: Optional[Tuple[float, float]] = None,
+    ) -> None:
+        """
+        Trace le graphe d'une expression mathématique.
+
+        Args:
+            expression: L'expression à tracer
+            x_range: Tuple (min, max) pour l'axe des x
+            y_range: Optionnel, tuple (min, max) pour l'axe des y
+        """
         try:
-            matrix = self.view.get_matrix_a()
-            if matrix is None:
-                matrix = self.view.get_matrix_b()
+            # Convertit l'expression en une fonction évaluable
+            x = np.linspace(x_range[0], x_range[1], 1000)
+            y = eval(
+                expression,
+                {"__builtins__": None},
+                {
+                    "x": x,
+                    "sin": np.sin,
+                    "cos": np.cos,
+                    "tan": np.tan,
+                    "exp": np.exp,
+                    "log": np.log,
+                    "sqrt": np.sqrt,
+                    "pi": np.pi,
+                    "e": np.e,
+                },
+            )
 
-            if matrix is None:
-                self.view.show_error("Aucune matrice définie")
-                return
+            # Crée le graphique
+            fig, ax = plt.subplots()
+            ax.plot(x, y)
+            ax.set_xlabel("x")
+            ax.set_ylabel("y")
+            ax.set_title(f"Graphe de {expression}")
 
-            inverse = self.model.calculate_inverse(np.array(matrix))
-            if inverse is not None:
-                self.view.show_matrix(inverse, "Matrice inverse")
-                self.model.add_to_history(
-                    "Calcul de l'inverse",
-                    {"matrix": matrix},
-                    "Matrice inverse calculée",
-                )
+            if y_range:
+                ax.set_ylim(y_range)
+
+            # Convertit en QPixmap et émet le signal
+            canvas = FigureCanvas(fig)
+            pixmap = QPixmap(canvas.size())
+            canvas.render(pixmap)
+            self.graph_updated.emit(pixmap)
 
         except Exception as e:
-            self.view.show_error(f"Erreur lors du calcul de l'inverse: {str(e)}")
+            self.error_occurred.emit(f"Erreur lors du tracé: {str(e)}")
 
-    @pyqtSlot(np.ndarray)
-    def on_matrix_operation_completed(self, result):
-        """Appelé lorsqu'une opération sur les matrices est terminée"""
-        self.view.show_matrix(result, "Résultat")
+    def solve_equation(self, equation: str, variable: str = "x") -> None:
+        """
+        Résout une équation symbolique.
 
-    # Gestion des événements de factorisation
-    @pyqtSlot()
-    def on_factorize_requested(self):
-        """Gère la demande de factorisation"""
+        Args:
+            equation: L'équation à résoudre (ex: "x**2 - 1 = 0")
+            variable: La variable à résoudre (par défaut: 'x')
+        """
         try:
-            expression = self.view.get_expression_to_factor()
-            if not expression:
-                self.view.show_error("Veuillez entrer une expression à factoriser")
-                return
+            # Nettoie l'équation et la convertit en expression sympy
+            eq = equation.replace("=", "-")
+            sympy_eq = parse_expr(eq)
 
-            result = self.model.factor_expression(expression)
-            if result is not None:
-                self.view.show_factorization_result(result)
-                self.model.add_to_history(
-                    "Factorisation", {"expression": expression}, f"Résultat: {result}"
-                )
+            # Résout l'équation
+            solution = solve(sympy_eq, Symbol(variable))
 
-                # Afficher l'analyse de l'expression
-                analysis = self.model.analyze_expression(expression)
-                if analysis is not None:
-                    self.view.show_analysis(analysis)
+            self.calculation_complete.emit(
+                f"Résolution de {equation}", f"Solution: {solution}"
+            )
 
         except Exception as e:
-            self.view.show_error(f"Erreur lors de la factorisation: {str(e)}")
+            self.error_occurred.emit(f"Erreur lors de la résolution: {str(e)}")
 
-    @pyqtSlot(str)
-    def on_factorization_completed(self, result):
-        """Appelé lorsque la factorisation est terminée"""
-        self.view.show_factorization_result(result)
+    def differentiate_expression(
+        self, expression: str, variable: str = "x", order: int = 1
+    ) -> None:
+        """
+        Calcule la dérivée d'une expression.
 
-    # Gestion des erreurs
-    @pyqtSlot(str)
-    def on_error_occurred(self, error_message):
-        """Affiche un message d'erreur"""
-        self.view.show_error(error_message)
+        Args:
+            expression: L'expression à dériver
+            variable: La variable de dérivation (par défaut: 'x')
+            order: Ordre de dérivation (par défaut: 1)
+        """
+        try:
+            # Convertit l'expression en expression sympy
+            expr = parse_expr(expression)
 
-    # Méthodes utilitaires
-    def initialize_ui(self):
-        """Initialise l'interface utilisateur avec les données du modèle"""
-        # Initialisation de l'interface utilisateur
-        pass
+            # Calcule la dérivée
+            derivative = diff(expr, Symbol(variable), order)
 
-    def initialize(self):
-        """Initialise le contrôleur (pour compatibilité descendante)"""
-        self.initialize_ui()
+            self.calculation_complete.emit(
+                f"Dérivée d'ordre {order} de {expression} par rapport à {variable}",
+                f"Résultat: {derivative}",
+            )
 
-    def cleanup(self):
-        """Nettoie les ressources"""
-        # Sauvegarder l'historique si nécessaire
-        pass
+        except Exception as e:
+            self.error_occurred.emit(f"Erreur lors du calcul de la dérivée: {str(e)}")
+
+    def integrate_expression(
+        self,
+        expression: str,
+        variable: str = "x",
+        lower: Optional[float] = None,
+        upper: Optional[float] = None,
+    ) -> None:
+        """
+        Calcule l'intégrale d'une expression.
+
+        Args:
+            expression: L'expression à intégrer
+            variable: Variable d'intégration (par défaut: 'x')
+            lower: Borne inférieure (intégrale définie si fournie)
+            upper: Borne supérieure (intégrale définie si fournie)
+        """
+        try:
+            # Convertit l'expression en expression sympy
+            expr = parse_expr(expression)
+
+            # Calcule l'intégrale
+            if lower is not None and upper is not None:
+                result = integrate(expr, (Symbol(variable), lower, upper))
+                result_str = f"de {lower} à {upper}: {result}"
+            else:
+                result = integrate(expr, Symbol(variable))
+                result_str = f"{result} + C"
+
+            self.calculation_complete.emit(
+                f"Intégrale de {expression}", f"Résultat: {result_str}"
+            )
+
+        except Exception as e:
+            self.error_occurred.emit(f"Erreur lors du calcul de l'intégrale: {str(e)}")
+
+    def calculate_limit(
+        self,
+        expression: str,
+        variable: str,
+        point: Union[float, str],
+        direction: str = "+",
+    ) -> None:
+        """
+        Calcule la limite d'une expression.
+
+        Args:
+            expression: L'expression dont on veut la limite
+            variable: La variable de la limite
+            point: Le point vers lequel tend la variable
+            direction: '+' pour la limite à droite, '-' pour la limite à gauche
+        """
+        try:
+            # Convertit l'expression en expression sympy
+            expr = parse_expr(expression)
+
+            # Calcule la limite
+            limit_point = oo if point == "oo" else point
+            lim = limit(expr, Symbol(variable), limit_point, dir=direction)
+
+            self.calculation_complete.emit(
+                f"Limite de {expression} quand {variable} -> {point}{direction}",
+                f"Résultat: {lim}",
+            )
+
+        except Exception as e:
+            self.error_occurred.emit(f"Erreur lors du calcul de la limite: {str(e)}")
+
+    def calculate_series(
+        self, expression: str, variable: str, point: float = 0, order: int = 5
+    ) -> None:
+        """
+        Calcule le développement en série d'une expression.
+
+        Args:
+            expression: L'expression à développer
+            variable: La variable du développement
+            point: Point autour duquel effectuer le développement
+            order: Ordre du développement
+        """
+        try:
+            # Convertit l'expression en expression sympy
+            expr = parse_expr(expression)
+
+            # Calcule le développement en série
+            series = expr.series(Symbol(variable), point, order).removeO()
+
+            self.calculation_complete.emit(
+                f"Développement en série de {expression} autour de {point}",
+                f"Résultat: {series}",
+            )
+
+        except Exception as e:
+            self.error_occurred.emit(
+                f"Erreur lors du calcul du développement en série: {str(e)}"
+            )

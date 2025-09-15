@@ -2,57 +2,89 @@ import math
 import cmath
 import re
 from datetime import datetime
+from typing import Union, List, Tuple, Optional
 
 
 class ScientificCalculatorModel:
+    """
+    Modèle pour la calculatrice scientifique.
+    Gère les calculs scientifiques et l'historique.
+    """
+
     def __init__(self):
         self.memory = 0
         self.last_ans = 0
         self.angle_mode = "DEG"  # DEG, RAD, GRAD
-        self.history = []  # Liste pour stocker l'historique des calculs
-        self.max_history_size = 100  # Nombre maximum d'entrées dans l'historique
+        self.history = []
+        self.max_history_size = 100
         self.settings = {
             "angle_mode": "DEG",
             "number_format": "normal",  # normal, sci, eng
             "precision": 10,
         }
 
-        # Ajout de la fonction lcm si elle n'existe pas (pour Python < 3.9)
-        import sys
+    def set_angle_mode(self, mode: str) -> bool:
+        """
+        Définit le mode d'angle.
 
-        if sys.version_info < (3, 9):
-            import math
+        Args:
+            mode: 'DEG', 'RAD' ou 'GRAD'
 
-            def lcm(a, b):
-                return abs(a * b) // math.gcd(a, b) if a and b else 0
-
-            math.lcm = lcm
-
-    def set_angle_mode(self, mode):
-        """Définit le mode d'angle (DEG, RAD, GRAD)"""
-        if mode.upper() in ["DEG", "RAD", "GRAD"]:
-            self.settings["angle_mode"] = mode.upper()
+        Returns:
+            bool: True si le mode a été changé, False sinon
+        """
+        mode = mode.upper()
+        if mode in ["DEG", "RAD", "GRAD"]:
+            self.settings["angle_mode"] = mode
+            self.angle_mode = mode
             return True
         return False
 
-    def to_radians(self, angle):
-        """Convertit un angle en radians selon le mode actuel"""
+    def to_radians(self, angle: float) -> float:
+        """
+        Convertit un angle en radians selon le mode actuel.
+
+        Args:
+            angle: L'angle à convertir
+
+        Returns:
+            float: L'angle en radians
+        """
         if self.settings["angle_mode"] == "DEG":
             return math.radians(angle)
         elif self.settings["angle_mode"] == "GRAD":
             return angle * math.pi / 200
         return angle  # Déjà en radians
 
-    def from_radians(self, angle):
-        """Convertit des radians vers le mode d'angle actuel"""
+    def from_radians(self, angle: float) -> float:
+        """
+        Convertit des radians vers le mode d'angle actuel.
+
+        Args:
+            angle: L'angle en radians
+
+        Returns:
+            float: L'angle converti
+        """
         if self.settings["angle_mode"] == "DEG":
             return math.degrees(angle)
         elif self.settings["angle_mode"] == "GRAD":
             return angle * 200 / math.pi
-        return angle  # Déjà en radians
+        return angle  # Déjà dans le bon mode
 
-    def evaluate_expression(self, expression):
-        """Évalue une expression mathématique"""
+    def evaluate_expression(self, expression: str) -> float:
+        """
+        Évalue une expression mathématique.
+
+        Args:
+            expression: L'expression à évaluer
+
+        Returns:
+            float: Le résultat du calcul
+
+        Raises:
+            ValueError: Si l'expression est invalide
+        """
         try:
             # Remplacer les constantes
             expr = expression.replace("π", "pi").replace("e", "math.e")
@@ -169,8 +201,8 @@ class ScientificCalculatorModel:
                     "rect": cmath.rect,
                     "phase": cmath.phase,
                     "polar_to_rect": lambda r, phi: (
-                        r * cmath.cos(phi),
-                        r * cmath.sin(phi),
+                        r * math.cos(phi),
+                        r * math.sin(phi),
                     ),
                     "rect_to_polar": lambda x, y: cmath.polar(complex(x, y)),
                 },
@@ -183,258 +215,96 @@ class ScientificCalculatorModel:
         except Exception as e:
             raise ValueError(f"Erreur d'évaluation: {str(e)}")
 
-    def memory_add(self, value):
-        """Ajoute une valeur à la mémoire"""
-        self.memory += value
-        return self.memory
-
-    def memory_subtract(self, value):
-        """Soustrait une valeur de la mémoire"""
-        self.memory -= value
-        return self.memory
-
-    def memory_clear(self):
-        """Réinitialise la mémoire"""
-        self.memory = 0
-        return self.memory
-
-    def memory_recall(self):
-        """Récupère la valeur en mémoire"""
-        return self.memory
-
-    def format_number(self, number):
-        """Formate un nombre selon les paramètres actuels"""
-        if not isinstance(number, (int, float)):
-            return str(number)
-
-        if self.settings["number_format"] == "sci":
-            return f"{number:.{self.settings['precision']}e}"
-        elif self.settings["number_format"] == "eng":
-            # Format d'ingénierie (exposants multiples de 3)
-            if number == 0:
-                return "0"
-
-            exp = math.floor(math.log10(abs(number)))
-            exp = exp - (exp % 3)
-            mantissa = number / (10**exp)
-
-            return f"{mantissa:.{self.settings['precision']}f}e{exp}"
-        else:
-            # Format normal
-            if number == int(number):
-                return str(int(number))
-            return f"{number:.{self.settings['precision']}f}".rstrip("0").rstrip(".")
-
-    def set_precision(self, precision):
-        """Définit la précision d'affichage"""
-        if 0 <= precision <= 15:
-            self.settings["precision"] = precision
-            return True
-        return False
-
-    def set_number_format(self, fmt):
-        """Définit le format des nombres (normal, sci, eng)"""
-        if fmt in ["normal", "sci", "eng"]:
-            self.settings["number_format"] = fmt
-            return True
-        return False
-
-    # Méthodes pour gérer l'historique
-    def add_to_history(self, expression, result):
+    def add_to_history(self, expression: str, result: float) -> None:
         """
-        Ajoute une entrée à l'historique des calculs
+        Ajoute un calcul à l'historique.
 
         Args:
             expression: L'expression calculée
             result: Le résultat du calcul
         """
+        timestamp = datetime.now()
         self.history.append(
-            {"timestamp": datetime.now(), "expression": expression, "result": result}
+            {
+                "timestamp": timestamp,
+                "expression": expression,
+                "result": result,
+                "mode": self.settings["angle_mode"],
+            }
         )
 
         # Limiter la taille de l'historique
         if len(self.history) > self.max_history_size:
             self.history.pop(0)
 
-    def get_history(self, limit=None):
+    def get_history(self) -> List[dict]:
         """
-        Récupère l'historique des calculs
-
-        Args:
-            limit: Nombre maximum d'entrées à retourner (None pour tout l'historique)
+        Retourne l'historique des calculs.
 
         Returns:
-            Liste des entrées d'historique
+            List[dict]: La liste des calculs effectués
         """
-        if limit is not None and limit > 0:
-            return self.history[-limit:]
-        return self.history.copy()
+        return self.history
 
-    def clear_history(self):
-        """Efface tout l'historique des calculs"""
-        self.history.clear()
+    def clear_history(self) -> None:
+        """Efface l'historique des calculs."""
+        self.history = []
 
-    def save_history_to_file(self, filename):
+    def memory_add(self, value: float) -> None:
         """
-        Sauvegarde l'historique dans un fichier
+        Ajoute une valeur à la mémoire.
 
         Args:
-            filename: Chemin du fichier de sauvegarde
+            value: La valeur à ajouter
+        """
+        self.memory += value
+
+    def memory_subtract(self, value: float) -> None:
+        """
+        Soustrait une valeur de la mémoire.
+
+        Args:
+            value: La valeur à soustraire
+        """
+        self.memory -= value
+
+    def memory_recall(self) -> float:
+        """
+        Récupère la valeur en mémoire.
 
         Returns:
-            True si la sauvegarde a réussi, False sinon
+            float: La valeur en mémoire
         """
-        try:
-            with open(filename, "w") as f:
-                import json
+        return self.memory
 
-                # Convertir les objets datetime en chaînes pour la sérialisation JSON
-                serializable_history = []
-                for entry in self.history:
-                    serializable_entry = entry.copy()
-                    serializable_entry["timestamp"] = entry["timestamp"].isoformat()
-                    serializable_history.append(serializable_entry)
-                json.dump(serializable_history, f, indent=2)
-            return True
-        except Exception as e:
-            print(f"Erreur lors de la sauvegarde de l'historique: {e}")
-            return False
+    def memory_clear(self) -> None:
+        """Réinitialise la mémoire à zéro."""
+        self.memory = 0
 
-    def load_history_from_file(self, filename):
+    def get_angle_mode(self) -> str:
         """
-        Charge l'historique depuis un fichier
-
-        Args:
-            filename: Chemin du fichier à charger
+        Retourne le mode d'angle actuel.
 
         Returns:
-            True si le chargement a réussi, False sinon
+            str: Le mode d'angle ('DEG', 'RAD' ou 'GRAD')
         """
-        try:
-            with open(filename, "r") as f:
-                import json
+        return self.settings["angle_mode"]
 
-                serializable_history = json.load(f)
-                self.history = []
-                for entry in serializable_history:
-                    from datetime import datetime
-
-                    self.history.append(
-                        {
-                            "timestamp": datetime.fromisoformat(entry["timestamp"]),
-                            "expression": entry["expression"],
-                            "result": entry["result"],
-                        }
-                    )
-            return True
-        except Exception as e:
-            print(f"Erreur lors du chargement de l'historique: {e}")
-            return False
-
-    # Méthodes statistiques
-    def calculate_mean(self, numbers):
-        """Calcule la moyenne d'une liste de nombres"""
-        if not numbers:
-            raise ValueError("La liste des nombres ne peut pas être vide")
-        return sum(numbers) / len(numbers)
-
-    def calculate_median(self, numbers):
-        """Calcule la médiane d'une liste de nombres"""
-        if not numbers:
-            raise ValueError("La liste des nombres ne peut pas être vide")
-
-        sorted_numbers = sorted(numbers)
-        n = len(sorted_numbers)
-        mid = n // 2
-
-        if n % 2 == 1:
-            return sorted_numbers[mid]
-        else:
-            return (sorted_numbers[mid - 1] + sorted_numbers[mid]) / 2
-
-    def calculate_mode(self, numbers):
-        """Calcule le(s) mode(s) d'une liste de nombres"""
-        if not numbers:
-            raise ValueError("La liste des nombres ne peut pas être vide")
-
-        frequency = {}
-        for num in numbers:
-            frequency[num] = frequency.get(num, 0) + 1
-
-        max_freq = max(frequency.values())
-        modes = [num for num, freq in frequency.items() if freq == max_freq]
-
-        return modes[0] if len(modes) == 1 else modes
-
-    def calculate_std_dev(self, numbers, sample=False):
+    def set_precision(self, precision: int) -> None:
         """
-        Calcule l'écart-type d'une liste de nombres
+        Définit la précision des calculs.
 
         Args:
-            numbers: Liste de nombres
-            sample: Si True, calcule l'écart-type d'échantillon (n-1)
+            precision: Le nombre de décimales à afficher
         """
-        if not numbers:
-            raise ValueError("La liste des nombres ne peut pas être vide")
+        if 0 <= precision <= 15:
+            self.settings["precision"] = precision
 
-        n = len(numbers)
-        if n == 1 and sample:
-            return 0.0
-
-        mean = self.calculate_mean(numbers)
-        variance = sum((x - mean) ** 2 for x in numbers) / (n - 1 if sample else n)
-        return math.sqrt(variance)
-
-    def calculate_variance(self, numbers, sample=False):
+    def get_precision(self) -> int:
         """
-        Calcule la variance d'une liste de nombres
-
-        Args:
-            numbers: Liste de nombres
-            sample: Si True, calcule la variance d'échantillon (n-1)
-        """
-        if not numbers:
-            raise ValueError("La liste des nombres ne peut pas être vide")
-
-        n = len(numbers)
-        if n == 1 and sample:
-            return 0.0
-
-        mean = self.calculate_mean(numbers)
-        return sum((x - mean) ** 2 for x in numbers) / (n - 1 if sample else n)
-
-    def calculate_regression(self, x_data, y_data):
-        """
-        Calcule la régression linéaire (pente et ordonnée à l'origine)
+        Retourne la précision actuelle.
 
         Returns:
-            Tuple (slope, intercept, r_squared)
+            int: Le nombre de décimales affichées
         """
-        if len(x_data) != len(y_data):
-            raise ValueError("Les listes x et y doivent avoir la même longueur")
-        if len(x_data) < 2:
-            raise ValueError("Au moins deux points sont nécessaires pour la régression")
-
-        n = len(x_data)
-        sum_x = sum(x_data)
-        sum_y = sum(y_data)
-        sum_xy = sum(x * y for x, y in zip(x_data, y_data))
-        sum_x2 = sum(x**2 for x in x_data)
-
-        # Calcul de la pente (slope) et de l'ordonnée à l'origine (intercept)
-        denominator = n * sum_x2 - sum_x**2
-        if denominator == 0:
-            raise ValueError("Les points sont alignés verticalement")
-
-        slope = (n * sum_xy - sum_x * sum_y) / denominator
-        intercept = (sum_y - slope * sum_x) / n
-
-        # Calcul du coefficient de détermination (R²)
-        y_mean = sum_y / n
-        ss_total = sum((y - y_mean) ** 2 for y in y_data)
-        ss_residual = sum(
-            (y - (slope * x + intercept)) ** 2 for x, y in zip(x_data, y_data)
-        )
-        r_squared = 1 - (ss_residual / ss_total) if ss_total != 0 else 1.0
-
-        return slope, intercept, r_squared
+        return self.settings["precision"]
