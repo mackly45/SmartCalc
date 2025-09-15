@@ -1,310 +1,208 @@
 import math
-import cmath
-import re
-from datetime import datetime
-from typing import Union, List, Tuple, Optional
+from typing import Dict, Union, Optional, List
 
 
-class ScientificCalculatorModel:
+class ScientificModel:
     """
-    Modèle pour la calculatrice scientifique.
-    Gère les calculs scientifiques et l'historique.
+    Modèle pour les opérations scientifiques de la calculatrice.
+    Gère les calculs mathématiques avancés.
     """
 
     def __init__(self):
-        self.memory = 0
-        self.last_ans = 0
-        self.angle_mode = "DEG"  # DEG, RAD, GRAD
         self.history = []
-        self.max_history_size = 100
-        self.settings = {
-            "angle_mode": "DEG",
-            "number_format": "normal",  # normal, sci, eng
-            "precision": 10,
-        }
+        self.memory = 0.0
+        self.angle_mode = "DEG"  # DEG, RAD, GRAD
 
-    def set_angle_mode(self, mode: str) -> bool:
-        """
-        Définit le mode d'angle.
-
-        Args:
-            mode: 'DEG', 'RAD' ou 'GRAD'
-
-        Returns:
-            bool: True si le mode a été changé, False sinon
-        """
-        mode = mode.upper()
-        if mode in ["DEG", "RAD", "GRAD"]:
-            self.settings["angle_mode"] = mode
-            self.angle_mode = mode
-            return True
-        return False
-
-    def to_radians(self, angle: float) -> float:
-        """
-        Convertit un angle en radians selon le mode actuel.
-
-        Args:
-            angle: L'angle à convertir
-
-        Returns:
-            float: L'angle en radians
-        """
-        if self.settings["angle_mode"] == "DEG":
-            return math.radians(angle)
-        elif self.settings["angle_mode"] == "GRAD":
-            return angle * math.pi / 200
-        return angle  # Déjà en radians
-
-    def from_radians(self, angle: float) -> float:
-        """
-        Convertit des radians vers le mode d'angle actuel.
-
-        Args:
-            angle: L'angle en radians
-
-        Returns:
-            float: L'angle converti
-        """
-        if self.settings["angle_mode"] == "DEG":
-            return math.degrees(angle)
-        elif self.settings["angle_mode"] == "GRAD":
-            return angle * 200 / math.pi
-        return angle  # Déjà dans le bon mode
-
-    def evaluate_expression(self, expression: str) -> float:
+    def evaluate_expression(
+        self, expression: str, variables: Optional[Dict[str, float]] = None
+    ) -> float:
         """
         Évalue une expression mathématique.
 
         Args:
             expression: L'expression à évaluer
+            variables: Dictionnaire des variables et leurs valeurs
 
         Returns:
-            float: Le résultat du calcul
-
-        Raises:
-            ValueError: Si l'expression est invalide
+            Le résultat de l'évaluation
         """
         try:
-            # Remplacer les constantes
-            expr = expression.replace("π", "pi").replace("e", "math.e")
+            # Crée un espace de noms sécurisé pour l'évaluation
+            safe_dict = {
+                "__builtins__": None,
+                "math": math,
+                "sin": self._wrap_angle_math(math.sin),
+                "cos": self._wrap_angle_math(math.cos),
+                "tan": self._wrap_angle_math(math.tan),
+                "asin": self._wrap_angle_math(math.asin, inverse=True),
+                "acos": self._wrap_angle_math(math.acos, inverse=True),
+                "atan": self._wrap_angle_math(math.atan, inverse=True),
+                "sqrt": math.sqrt,
+                "log": math.log10,
+                "ln": math.log,
+                "exp": math.exp,
+                "pi": math.pi,
+                "e": math.e,
+                "abs": abs,
+                "round": round,
+                "int": int,
+                "float": float,
+            }
 
-            # Remplacer les fonctions trigonométriques avec gestion du mode angle
-            if self.settings["angle_mode"] != "RAD":
-                for func in ["sin", "cos", "tan", "asin", "acos", "atan"]:
-                    expr = re.sub(
-                        rf"({func})\(([^)]+)\)",
-                        rf"math.{func}(self.to_radians(\2))",
-                        expr,
-                    )
-            else:
-                for func in ["sin", "cos", "tan", "asin", "acos", "atan"]:
-                    expr = expr.replace(f"{func}(", f"math.{func}(")
+            # Ajoute les variables à l'espace de noms
+            if variables:
+                safe_dict.update(variables)
 
-            # Remplacer les autres fonctions mathématiques
-            math_funcs = ["sqrt", "log", "log10", "exp", "factorial", "gamma", "log2"]
-            for func in math_funcs:
-                expr = expr.replace(f"{func}(", f"math.{func}(")
+            # Évalue l'expression de manière sécurisée
+            result = eval(expression, {"__builtins__": None}, safe_dict)
 
-            # Remplacer les fonctions hyperboliques
-            hyp_funcs = ["sinh", "cosh", "tanh", "asinh", "acosh", "atanh"]
-            for func in hyp_funcs:
-                expr = expr.replace(f"{func}(", f"math.{func}(")
-
-            # Évaluer l'expression
-            result = eval(
-                expr,
-                {"__builtins__": None},
+            # Ajoute à l'historique
+            self.history.append(
                 {
-                    "math": math,
-                    "e": math.e,
-                    "pi": math.pi,
-                    "ans": self.last_ans,
-                    "sqrt": math.sqrt,
-                    "log": math.log10,
-                    "ln": math.log,
-                    "exp": math.exp,
-                    "abs": abs,
-                    "round": round,
-                    "floor": math.floor,
-                    "ceil": math.ceil,
-                    "sin": (
-                        math.sin
-                        if self.settings["angle_mode"] == "RAD"
-                        else lambda x: math.sin(self.to_radians(x))
-                    ),
-                    "cos": (
-                        math.cos
-                        if self.settings["angle_mode"] == "RAD"
-                        else lambda x: math.cos(self.to_radians(x))
-                    ),
-                    "tan": (
-                        math.tan
-                        if self.settings["angle_mode"] == "RAD"
-                        else lambda x: math.tan(self.to_radians(x))
-                    ),
-                    "asin": lambda x: (
-                        self.from_radians(math.asin(x))
-                        if self.settings["angle_mode"] != "RAD"
-                        else math.asin(x)
-                    ),
-                    "acos": lambda x: (
-                        self.from_radians(math.acos(x))
-                        if self.settings["angle_mode"] != "RAD"
-                        else math.acos(x)
-                    ),
-                    "atan": lambda x: (
-                        self.from_radians(math.atan(x))
-                        if self.settings["angle_mode"] != "RAD"
-                        else math.atan(x)
-                    ),
-                    "sinh": math.sinh,
-                    "cosh": math.cosh,
-                    "tanh": math.tanh,
-                    "asinh": math.asinh,
-                    "acosh": math.acosh,
-                    "atanh": math.atanh,
-                    "log10": math.log10,
-                    "log2": math.log2,
-                    "factorial": math.factorial,
-                    "gcd": math.gcd,
-                    "degrees": math.degrees,
-                    "radians": math.radians,
-                    "mod": lambda x, y: x % y,
-                    "comb": (
-                        math.comb
-                        if hasattr(math, "comb")
-                        else lambda n, k: math.factorial(n)
-                        // (math.factorial(k) * math.factorial(n - k))
-                    ),
-                    "perm": lambda n, k: (
-                        math.perm(int(n), int(k))
-                        if hasattr(math, "perm")
-                        else math.factorial(n) // math.factorial(int(n) - int(k))
-                    ),
-                    "gamma": math.gamma,
-                    "lgamma": math.lgamma,
-                    "erf": math.erf,
-                    "erfc": math.erfc,
-                    "isqrt": (
-                        math.isqrt
-                        if hasattr(math, "isqrt")
-                        else lambda x: int(math.sqrt(x))
-                    ),
-                    "isclose": math.isclose,
-                    "lcm": lambda a, b: (
-                        abs(a * b) // math.gcd(int(a), int(b)) if a and b else 0
-                    ),
-                    "j": 1j,
-                    "complex": complex,
-                    "polar": cmath.polar,
-                    "rect": cmath.rect,
-                    "phase": cmath.phase,
-                    "polar_to_rect": lambda r, phi: (
-                        r * math.cos(phi),
-                        r * math.sin(phi),
-                    ),
-                    "rect_to_polar": lambda x, y: cmath.polar(complex(x, y)),
-                },
+                    "expression": expression,
+                    "result": result,
+                    "variables": variables or {},
+                }
             )
 
-            self.last_ans = result
-            self.add_to_history(expression, result)
-            return result
+            return float(result)
 
         except Exception as e:
             raise ValueError(f"Erreur d'évaluation: {str(e)}")
 
-    def add_to_history(self, expression: str, result: float) -> None:
+    def _wrap_angle_math(self, func, inverse=False):
         """
-        Ajoute un calcul à l'historique.
+        Enveloppe une fonction mathématique pour gérer les angles.
 
         Args:
-            expression: L'expression calculée
-            result: Le résultat du calcul
+            func: La fonction à envelopper
+            inverse: Si True, c'est une fonction inverse (comme asin, acos, atan)
+
+        Returns:
+            Une fonction qui gère automatiquement les conversions d'angle
         """
-        timestamp = datetime.now()
-        self.history.append(
-            {
-                "timestamp": timestamp,
-                "expression": expression,
-                "result": result,
-                "mode": self.settings["angle_mode"],
-            }
-        )
 
-        # Limiter la taille de l'historique
-        if len(self.history) > self.max_history_size:
-            self.history.pop(0)
+        def wrapper(x):
+            # Conversion avant l'application de la fonction
+            if not inverse:
+                if self.angle_mode == "DEG":
+                    x = math.radians(x)
+                elif self.angle_mode == "GRAD":
+                    x = math.radians(x * 0.9)
 
-    def get_history(self) -> List[dict]:
+                result = func(x)
+                return result
+            else:
+                # Pour les fonctions inverses, on applique d'abord la fonction
+                result = func(x)
+
+                # Puis on convertit le résultat si nécessaire
+                if self.angle_mode == "DEG":
+                    return math.degrees(result)
+                elif self.angle_mode == "GRAD":
+                    return math.degrees(result) * 10 / 9
+                else:  # RAD
+                    return result
+
+        return wrapper
+
+    def set_angle_mode(self, mode: str):
+        """
+        Définit le mode d'angle (DEG, RAD, GRAD).
+
+        Args:
+            mode: Le mode à définir ('DEG', 'RAD' ou 'GRAD')
+        """
+        if mode.upper() in ["DEG", "RAD", "GRAD"]:
+            self.angle_mode = mode.upper()
+        else:
+            raise ValueError(
+                "Mode d'angle non reconnu. Utilisez 'DEG', 'RAD' ou 'GRAD'."
+            )
+
+    def memory_add(self, value: float):
+        """Ajoute une valeur à la mémoire."""
+        self.memory += value
+
+    def memory_subtract(self, value: float):
+        """Soustrait une valeur de la mémoire."""
+        self.memory -= value
+
+    def memory_recall(self) -> float:
+        """Récupère la valeur en mémoire."""
+        return self.memory
+
+    def memory_clear(self):
+        """Efface la mémoire."""
+        self.memory = 0.0
+
+    def get_history(self) -> List[Dict]:
         """
         Retourne l'historique des calculs.
 
         Returns:
-            List[dict]: La liste des calculs effectués
+            Liste des calculs effectués
         """
         return self.history
 
-    def clear_history(self) -> None:
+    def clear_history(self):
         """Efface l'historique des calculs."""
         self.history = []
 
-    def memory_add(self, value: float) -> None:
+    def factorial(self, n: int) -> int:
         """
-        Ajoute une valeur à la mémoire.
+        Calcule la factorielle d'un nombre entier positif.
 
         Args:
-            value: La valeur à ajouter
-        """
-        self.memory += value
+            n: L'entier dont on veut calculer la factorielle
 
-    def memory_subtract(self, value: float) -> None:
+        Returns:
+            La factorielle de n
         """
-        Soustrait une valeur de la mémoire.
+        if not isinstance(n, int) or n < 0:
+            raise ValueError(
+                "La factorielle n'est définie que pour les entiers positifs"
+            )
+        return math.factorial(n)
+
+    def permutation(self, n: int, k: int) -> int:
+        """
+        Calcule le nombre de permutations de k éléments parmi n.
 
         Args:
-            value: La valeur à soustraire
-        """
-        self.memory -= value
-
-    def memory_recall(self) -> float:
-        """
-        Récupère la valeur en mémoire.
+            n: Nombre total d'éléments
+            k: Nombre d'éléments à sélectionner
 
         Returns:
-            float: La valeur en mémoire
+            Le nombre de permutations
         """
-        return self.memory
+        if n < 0 or k < 0 or k > n:
+            return 0
+        return math.perm(n, k) if hasattr(math, "perm") else self._fallback_perm(n, k)
 
-    def memory_clear(self) -> None:
-        """Réinitialise la mémoire à zéro."""
-        self.memory = 0
-
-    def get_angle_mode(self) -> str:
+    def combination(self, n: int, k: int) -> int:
         """
-        Retourne le mode d'angle actuel.
-
-        Returns:
-            str: Le mode d'angle ('DEG', 'RAD' ou 'GRAD')
-        """
-        return self.settings["angle_mode"]
-
-    def set_precision(self, precision: int) -> None:
-        """
-        Définit la précision des calculs.
+        Calcule le nombre de combinaisons de k éléments parmi n.
 
         Args:
-            precision: Le nombre de décimales à afficher
-        """
-        if 0 <= precision <= 15:
-            self.settings["precision"] = precision
-
-    def get_precision(self) -> int:
-        """
-        Retourne la précision actuelle.
+            n: Nombre total d'éléments
+            k: Nombre d'éléments à sélectionner
 
         Returns:
-            int: Le nombre de décimales affichées
+            Le nombre de combinaisons
         """
-        return self.settings["precision"]
+        if n < 0 or k < 0 or k > n:
+            return 0
+        return math.comb(n, k) if hasattr(math, "comb") else self._fallback_comb(n, k)
+
+    def _fallback_perm(self, n: int, k: int) -> int:
+        """Implémentation de remplacement pour math.perm"""
+        if k == 0:
+            return 1
+        return n * self._fallback_perm(n - 1, k - 1)
+
+    def _fallback_comb(self, n: int, k: int) -> int:
+        """Implémentation de remplacement pour math.comb"""
+        if k == 0 or k == n:
+            return 1
+        return self._fallback_comb(n - 1, k - 1) + self._fallback_comb(n - 1, k)

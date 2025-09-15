@@ -1,6 +1,4 @@
 from PyQt6.QtCore import QObject, pyqtSignal
-import json
-from datetime import datetime
 
 
 class CurrencyController(QObject):

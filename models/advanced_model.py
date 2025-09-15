@@ -1,17 +1,16 @@
 import numpy as np
-import sympy as sp
-from PyQt6.QtCore import QObject, pyqtSignal
+from typing import Dict, Any, Union, Optional
 from datetime import datetime
 
 
-class AdvancedCalculatorModel(QObject):
+class AdvancedCalculatorModel:
     """Modèle pour la calculatrice avancée (graphiques, matrices, factorisation)"""
 
     # Signaux
-    plot_updated = pyqtSignal(np.ndarray, np.ndarray)  # x, y
-    matrix_operation_completed = pyqtSignal(np.ndarray)  # result_matrix
-    factorization_completed = pyqtSignal(str)  # result_expression
-    error_occurred = pyqtSignal(str)  # error_message
+    plot_updated =  # x, y
+    matrix_operation_completed =  # result_matrix
+    factorization_completed =  # result_expression
+    error_occurred =  # error_message
 
     def __init__(self):
         super().__init__()
@@ -146,12 +145,12 @@ class AdvancedCalculatorModel(QObject):
     def factor_expression(self, expression):
         """Factorise une expression mathématique"""
         try:
-            x = sp.Symbol("x")
-            expr = sp.sympify(expression)
-            factored = sp.factor(expr)
+            x = 
+            expr = 
+            factored = 
 
             # Vérifier si la factorisation a fonctionné
-            if sp.expand(factored) != sp.expand(expr):
+            if  != :
                 self.error_occurred.emit(
                     "Impossible de factoriser complètement l'expression"
                 )
@@ -166,17 +165,17 @@ class AdvancedCalculatorModel(QObject):
     def analyze_expression(self, expression):
         """Analyse une expression mathématique (racines, dérivée, etc.)"""
         try:
-            x = sp.Symbol("x")
-            expr = sp.sympify(expression)
+            x = 
+            expr = 
 
             # Calculer la dérivée
-            derivative = sp.diff(expr, x)
+            derivative = 
 
             # Trouver les racines
-            roots = sp.solve(expr, x)
+            roots = 
 
             # Trouver les points critiques (où la dérivée s'annule)
-            critical_points = sp.solve(derivative, x)
+            critical_points = 
 
             return {
                 "derivative": str(derivative),

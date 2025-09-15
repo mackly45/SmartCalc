@@ -1,6 +1,5 @@
 from PyQt6.QtCore import QObject, pyqtSignal
 import math
-from typing import Dict, Any, Optional
 
 
 class ScientificController(QObject):

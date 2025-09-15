@@ -1,8 +1,6 @@
 from PyQt6.QtCore import QObject, pyqtSignal
 from PyQt6.QtGui import QPixmap
 import numpy as np
-from sympy.parsing.sympy_parser import parse_expr
-from sympy import Symbol, diff, integrate, solve, limit, oo
 import matplotlib.pyplot as plt
 from matplotlib.backends.backend_qt5agg import FigureCanvas
 
@@ -67,7 +65,7 @@ class AdvancedController(QObject):
             pixmap = QPixmap(int(width), int(height))
             pixmap.fill()
 
-            # Sauvegarde de la figure dans le QPixmap
+            # Sauvegarde de la figure dans un fichier temporaire
             fig.savefig("temp_plot.png")
             pixmap = QPixmap("temp_plot.png")
 
@@ -92,7 +90,7 @@ class AdvancedController(QObject):
         try:
             derivative = self.model.differentiate(expression, variable, order)
             self.calculation_complete.emit(
-                f"Dérivée d'ordre {order} de {expression} par rapport à {variable}",
+                f"Dérivée d'ordre {order} de {expression} " f"par rapport à {variable}",
                 f"Résultat: {derivative}",
             )
         except Exception as e:
@@ -107,7 +105,8 @@ class AdvancedController(QObject):
                     expression, variable, float(lower), float(upper)
                 )
                 self.calculation_complete.emit(
-                    f"Intégrale de {expression} de {lower} à {upper} par rapport à {variable}",
+                    f"Intégrale de {expression} de {lower} à {upper} "
+                    f"par rapport à {variable}",
                     f"Résultat: {result}",
                 )
             else:
@@ -125,7 +124,8 @@ class AdvancedController(QObject):
         try:
             lim = self.model.calculate_limit(expression, variable, point, direction)
             self.calculation_complete.emit(
-                f"Limite de {expression} quand {variable} -> {point}{'⁻' if direction == '-' else ''}",
+                f"Limite de {expression} quand {variable} -> "
+                f"{point}{'⁻' if direction == '-' else ''}",
                 f"Résultat: {lim}",
             )
         except Exception as e:
@@ -136,7 +136,8 @@ class AdvancedController(QObject):
         try:
             series = self.model.series_expansion(expression, variable, point, order)
             self.calculation_complete.emit(
-                f"Développement en série de {expression} autour de {point} à l'ordre {order}",
+                f"Développement en série de {expression} "
+                f"autour de {point} à l'ordre {order}",
                 f"Résultat: {series}",
             )
         except Exception as e:

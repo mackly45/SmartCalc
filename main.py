@@ -7,9 +7,9 @@ from PyQt6.QtWidgets import (
     QMainWindow,
     QVBoxLayout,
     QWidget,
-    QTabWidget,
     QStatusBar,
     QLabel,
+    QTabWidget,
 )
 from PyQt6.QtCore import Qt, QTimer
 
@@ -231,8 +231,6 @@ def main():
     main_window = MainWindow()
 
     # Simuler un temps de chargement
-    from PyQt6.QtCore import QTimer
-
     QTimer.singleShot(2000, lambda: show_main_app(loading_screen, main_window))
 
     sys.exit(app.exec())
