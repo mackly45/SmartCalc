@@ -15,6 +15,14 @@ class ScientificCalculatorModel:
             'number_format': 'normal',  # normal, sci, eng
             'precision': 10
         }
+        
+        # Ajout de la fonction lcm si elle n'existe pas (pour Python < 3.9)
+        import sys
+        if sys.version_info < (3, 9):
+            import math
+            def lcm(a, b):
+                return abs(a * b) // math.gcd(a, b) if a and b else 0
+            math.lcm = lcm
     
     def set_angle_mode(self, mode):
         """Définit le mode d'angle (DEG, RAD, GRAD)"""
@@ -98,16 +106,15 @@ class ScientificCalculatorModel:
                 'degrees': math.degrees,
                 'radians': math.radians,
                 'mod': lambda x, y: x % y,
-                'comb': math.comb,
-                'perm': lambda n, k: math.perm(int(n), int(k)),
+                'comb': math.comb if hasattr(math, 'comb') else lambda n, k: math.factorial(n) // (math.factorial(k) * math.factorial(n - k)),
+                'perm': lambda n, k: math.perm(int(n), int(k)) if hasattr(math, 'perm') else math.factorial(n) // math.factorial(int(n) - int(k)),
                 'gamma': math.gamma,
                 'lgamma': math.lgamma,
                 'erf': math.erf,
                 'erfc': math.erfc,
-                'isqrt': math.isqrt,
+                'isqrt': math.isqrt if hasattr(math, 'isqrt') else lambda x: int(math.sqrt(x)),
                 'isclose': math.isclose,
-                'gcd': math.gcd,
-                'lcm': math.lcm,
+                'lcm': lambda a, b: abs(a * b) // math.gcd(int(a), int(b)) if a and b else 0,
                 'j': 1j,
                 'complex': complex,
                 'polar': cmath.polar,
