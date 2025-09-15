@@ -56,60 +56,8 @@ jobs:
             libxcb-xkb1 \
             libxcb-util1 \
             libxcb-xinerama0 \
-            libxcb-xinput0 \
-            libxcb-xkb-dev \
-            libxcb-util-dev \
-            libxcb-render0-dev \
-            libxcb-shm0-dev \
-            libxcb-sync-dev \
-            libxcb-xfixes0-dev \
-            libxcb-shape0-dev \
-            libxcb-randr0-dev \
-            libxcb-icccm4-dev \
-            libxcb-keysyms1-dev \
-            libxcb-image0-dev \
-            libxcb-xtest0-dev \
-            libxcb-xinerama0-dev \
-            libxcb-xkb-dev \
-            libxcb-xinput-dev \
-            libxcb-damage0-dev \
-            libxcb-composite0-dev \
-            libxcb-cursor-dev \
-            libxcb-dri2-0-dev \
-            libxcb-dri3-dev \
-            libxcb-glx0-dev \
-            libxcb-present-dev \
-            libxcb-randr0-dev \
-            libxcb-record0-dev \
-            libxcb-render-util0-dev \
-            libxcb-res0-dev \
-            libxcb-screensaver0-dev \
-            libxcb-sync-dev \
-            libxcb-util-dev \
-            libxcb-xf86dri-dev \
-            libxcb-xfixes0-dev \
-            libxcb-xinerama0-dev \
-            libxcb-xinput-dev \
-            libxcb-xkb-dev \
-            libxcb-xv-dev \
-            libxcb1-dev \
-            libxcomposite-dev \
-            libxcursor-dev \
-            libxdamage-dev \
-            libxext-dev \
-            libxfixes-dev \
-            libxi-dev \
-            libxrandr-dev \
-            libxrender-dev \
-            libxss-dev \
-            libxtst-dev \
-            libxv-dev \
-            libxxf86vm-dev \
-            libglu1-mesa-dev \
-            libegl1-mesa-dev \
-            libgles2-mesa-dev \
-            mesa-common-dev
-
+            libxcb-xinput0
+    
     - name: Install system dependencies (macOS)
       if: runner.os == 'macOS'
       run: |

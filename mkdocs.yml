@@ -2,8 +2,14 @@ site_name: SmartCalc
 site_description: Une calculatrice scientifique avancée
 site_author: Votre Nom
 
+# Thème Material for MkDocs
 theme:
   name: material
+  features:
+    - navigation.tabs
+    - navigation.sections
+    - header.autohide
+    - navigation.top
   palette:
     - scheme: default
       primary: indigo
@@ -15,34 +21,68 @@ theme:
       toggle:
         icon: material/weather-sunny
         name: Switch to light mode
+  font:
+    text: Roboto
+    code: Roboto Mono
+  icon:
+    repo: fontawesome/brands/github
+  favicon: assets/images/favicon.png
 
+# Informations du dépôt
 repo_name: mackly45/SmartCalc
 repo_url: https://github.com/mackly45/SmartCalc
 
+# Configuration des dossiers
 docs_dir: docs
 site_dir: site
 
+# Navigation
 nav:
   - Accueil: index.md
   - Installation: installation.md
   - Utilisation: usage.md
   - API: api.md
 
+# Extensions Markdown
 markdown_extensions:
   - admonition
-  - codehilite
+  - codehilite:
+      guess_lang: false
   - toc:
       permalink: true
   - pymdownx.arithmatex
-  - pymdownx.highlight
+  - pymdownx.highlight:
+      anchor_linenums: true
   - pymdownx.superfences
-  - pymdownx.tabbed
+  - pymdownx.tabbed:
+      alternate_style: true
   - pymdownx.tilde
+  - pymdownx.emoji:
+      emoji_index: !!python/name:materialx.emoji.twemoji
+      emoji_generator: !!python/name:materialx.emoji.to_svg
 
+# Plugins
 plugins:
   - search
-  - mkdocstrings
-  - mkdocs-material
+  - mkdocstrings:
+      default_handler: python
+      handlers:
+        python:
+          options:
+            docstring_style: google
+            show_root_heading: true
+            show_source: true
+  - material/extensions/versioning
 
+# CSS personnalisé
 extra_css:
   - css/extra.css
+
+# Paramètres supplémentaires
+extra:
+  version:
+    provider: mike
+
+# Configuration du build
+strict: true
+use_directory_urls: true
