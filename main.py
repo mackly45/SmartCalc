@@ -10,6 +10,7 @@ from views.calculator_view import CalculatorView
 from views.currency_view import CurrencyView
 from views.scientific_view import ScientificView
 from views.advanced_view import AdvancedView
+from views.conversion_view import ConversionView
 
 # Import des modèles
 from models.calculator_model import CalculatorModel
@@ -22,6 +23,7 @@ from controllers.calculator_controller import CalculatorController
 from controllers.currency_controller import CurrencyController
 from controllers.scientific_controller import ScientificController
 from controllers.advanced_controller import AdvancedController
+from controllers.conversion_controller import ConversionController
 
 import argparse
 
@@ -103,94 +105,122 @@ class LoadingScreen(QMainWindow):
 class MainWindow(QMainWindow):
     def __init__(self):
         super().__init__()
-        self.setup_ui()
-        self.setup_controllers()
-    
-    def setup_ui(self):
-        """Configure l'interface utilisateur"""
         self.setWindowTitle("SmartCalc - Calculatrice Scientifique")
         self.setMinimumSize(1000, 800)
         
-        # Création du widget central et du layout
+        # Initialiser les modèles
+        self.calculator_model = CalculatorModel()
+        self.scientific_model = ScientificCalculatorModel()
+        self.currency_model = CurrencyModel()
+        self.advanced_model = AdvancedCalculatorModel()
+        
+        # Initialiser l'interface
+        self._setup_ui()
+        
+        # Initialiser les contrôleurs
+        self._init_controllers()
+        
+        # Connecter les signaux
+        self._connect_signals()
+        
+    def _setup_ui(self):
+        """Configure l'interface utilisateur principale"""
+        # Widget central
         central_widget = QWidget()
-        self.setCentralWidget(central_widget)
-        
-        # Layout principal
         main_layout = QVBoxLayout(central_widget)
-        main_layout.setContentsMargins(10, 10, 10, 10)
-        main_layout.setSpacing(10)
         
-        # Barre d'onglets
+        # Créer le widget d'onglets
         self.tab_widget = QTabWidget()
-        self.tab_widget.setStyleSheet("""
-            QTabBar::tab {
-                padding: 8px 15px;
-                background: #313244;
-                color: #cdd6f4;
-                border-top-left-radius: 4px;
-                border-top-right-radius: 4px;
-                margin-right: 2px;
-            }
-            QTabBar::tab:selected {
-                background: #45475a;
-                border-bottom: 2px solid #89b4fa;
-            }
-            QTabBar::tab:hover:!selected {
-                background: #585b70;
-            }
-            QTabWidget::pane {
-                border: 1px solid #45475a;
-                border-radius: 4px;
-                background: #1e1e2e;
-            }
-        """)
         
-        # Création des onglets
+        # Créer les vues
         self.calculator_view = CalculatorView()
         self.scientific_view = ScientificView()
         self.currency_view = CurrencyView()
         self.advanced_view = AdvancedView()
+        self.conversion_view = ConversionView()
         
-        # Ajout des onglets
+        # Ajouter les onglets
         self.tab_widget.addTab(self.calculator_view, "Calculatrice")
         self.tab_widget.addTab(self.scientific_view, "Scientifique")
         self.tab_widget.addTab(self.currency_view, "Devises")
         self.tab_widget.addTab(self.advanced_view, "Avancé")
+        self.tab_widget.addTab(self.conversion_view, "Convertisseur")
         
         # Ajout du widget d'onglets au layout principal
         main_layout.addWidget(self.tab_widget)
+        
+        # Définir le widget central
+        self.setCentralWidget(central_widget)
         
         # Barre d'état
         self.status_bar = QStatusBar()
         self.setStatusBar(self.status_bar)
         self.status_bar.showMessage("Prêt")
     
-    def setup_controllers(self):
+    def _init_controllers(self):
         """Initialise les contrôleurs"""
-        # Modèles
-        calculator_model = CalculatorModel()
-        currency_model = CurrencyModel()
-        scientific_model = ScientificCalculatorModel()
-        advanced_model = AdvancedCalculatorModel()
+        self.calculator_controller = CalculatorController(self.calculator_model, self.calculator_view)
+        self.scientific_controller = ScientificController(self.scientific_model, self.scientific_view)
+        self.currency_controller = CurrencyController(self.currency_model, self.currency_view)
+        self.advanced_controller = AdvancedController(self.advanced_model, self.advanced_view)
+        self.conversion_controller = ConversionController()
         
-        # Contrôleurs
-        self.calculator_controller = CalculatorController(calculator_model, self.calculator_view)
-        self.currency_controller = CurrencyController(currency_model, self.currency_view)
-        self.scientific_controller = ScientificController(scientific_model, self.scientific_view)
-        self.advanced_controller = AdvancedController(advanced_model, self.advanced_view)
+    def _connect_signals(self):
+        """Connecte les signaux entre les contrôleurs et les vues"""
+        # Connexions pour le convertisseur
+        self.conversion_view.convert_requested.connect(
+            self._on_convert_requested
+        )
+        self.conversion_view.swap_units_requested.connect(
+            self.conversion_controller.swap_units
+        )
+        self.conversion_view.conversion_type_changed.connect(
+            self.conversion_controller.set_conversion_type
+        )
         
-        # Connexion des signaux
+        # Signaux du contrôleur de conversion
+        self.conversion_controller.conversion_result.connect(
+            lambda v, u: self.conversion_view.update_result(v, u)
+        )
+        self.conversion_controller.units_updated.connect(
+            self.conversion_view.update_units
+        )
+        self.conversion_controller.error_occurred.connect(
+            self.conversion_view.show_error
+        )
+        self.conversion_controller.history_updated.connect(
+            self.conversion_view.update_history
+        )
+        
+        # Gestion du changement d'onglet
         self.tab_widget.currentChanged.connect(self.on_tab_changed)
+    
+    def _on_convert_requested(self, value, from_unit, to_unit, conv_type):
+        """Gère une demande de conversion"""
+        # Mettre à jour les unités dans le contrôleur
+        self.conversion_controller.set_units(from_unit, to_unit)
+        # Lancer la conversion
+        self.conversion_controller.convert(str(value))
     
     def on_tab_changed(self, index):
         """Appelé lors du changement d'onglet"""
         current_tab = self.tab_widget.currentWidget()
-        if current_tab == self.currency_view:
-            self.currency_controller.initialize_ui()
+        
+        # Initialisation spécifique à chaque onglet
+        if current_tab == self.calculator_view:
+            self.calculator_controller.initialize_ui()
         elif current_tab == self.scientific_view:
             self.scientific_controller.initialize_ui()
+        elif current_tab == self.currency_view:
+            self.currency_controller.initialize_ui()
         elif current_tab == self.advanced_view:
             self.advanced_controller.initialize_ui()
+        elif current_tab == self.conversion_view:
+            # Initialisation spécifique au convertisseur
+            conversion_types = self.conversion_controller.get_conversion_types()
+            self.conversion_view.update_conversion_types(conversion_types)
+            if conversion_types:
+                self.conversion_controller.set_conversion_type(conversion_types[0])
     
     def closeEvent(self, event):
         """Gère la fermeture de l'application"""
@@ -207,6 +237,9 @@ class MainWindow(QMainWindow):
             
         if hasattr(self, 'advanced_controller'):
             self.advanced_controller.cleanup()
+            
+        if hasattr(self, 'conversion_controller'):
+            self.conversion_controller.cleanup()
             
         # Fermeture propre de l'application
         event.accept()
