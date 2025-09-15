@@ -1,5 +1,5 @@
 from PyQt6.QtCore import QObject, pyqtSignal
-from typing import List
+from typing import Dict, List, Optional
 
 
 class ConversionController(QObject):
@@ -9,81 +9,29 @@ class ConversionController(QObject):
     """
 
     # Signaux
-    conversion_result = pyqtSignal(str)  # Résultat de la conversion
-    error_occurred = pyqtSignal(str)  # Message d'erreur
-
-    # Catégories de conversion disponibles
-    CONVERSION_CATEGORIES = {
-        "Longueur": ["mètres", "kilomètres", "milles", "pieds", "pouces"],
-        "Masse": ["grammes", "kilogrammes", "livres", "onces"],
-        "Température": ["Celsius", "Fahrenheit", "Kelvin"],
-        "Volume": ["litres", "millilitres", "gallons", "pintes"],
-        "Surface": ["m²", "pieds²", "hectares", "acres"],
-    }
-
-    # Facteurs de conversion
-    CONVERSION_FACTORS = {
-        # Longueur (en mètres)
-        "mètres": 1.0,
-        "kilomètres": 1000.0,
-        "milles": 1609.34,
-        "pieds": 0.3048,
-        "pouces": 0.0254,
-        # Masse (en grammes)
-        "grammes": 1.0,
-        "kilogrammes": 1000.0,
-        "livres": 453.592,
-        "onces": 28.3495,
-        # Volume (en litres)
-        "litres": 1.0,
-        "millilitres": 0.001,
-        "gallons": 3.78541,
-        "pintes": 0.568261,
-        # Surface (en mètres carrés)
-        "m²": 1.0,
-        "pieds²": 0.092903,
-        "hectares": 10000.0,
-        "acres": 4046.86,
-    }
+    conversion_result = pyqtSignal(float, str)  # valeur, unité
+    error_occurred = pyqtSignal(str)
 
     def __init__(self, model, view):
         super().__init__()
         self.model = model
         self.view = view
+        self.current_category = None
         self.connect_signals()
 
     def connect_signals(self):
-        """Connecte les signaux de la vue aux méthodes du contrôleur"""
+        """Connecte les signaux de la vue aux méthodes du contrôleur."""
         self.view.convert_clicked.connect(self.convert_units)
-        self.view.category_changed.connect(self.update_units)
+        self.view.category_changed.connect(self.on_category_changed)
+        self.view.swap_units_requested.connect(self.swap_units)
 
-    def get_categories(self) -> List[str]:
-        """Retourne la liste des catégories de conversion"""
-        return list(self.CONVERSION_CATEGORIES.keys())
+    def on_category_changed(self, category):
+        """Gère le changement de catégorie de conversion."""
+        self.current_category = category
+        units = self.model.get_units_for_category(category)
+        self.view.set_units(units)
 
-    def get_units_for_category(self, category: str) -> List[str]:
-        """
-        Retourne les unités disponibles pour une catégorie donnée.
-
-        Args:
-            category: La catégorie d'unités
-
-        Returns:
-            Liste des unités disponibles
-        """
-        return self.CONVERSION_CATEGORIES.get(category, [])
-
-    def update_units(self, category: str) -> None:
-        """
-        Met à jour les unités disponibles dans la vue.
-
-        Args:
-            category: La catégorie sélectionnée
-        """
-        units = self.get_units_for_category(category)
-        self.view.update_unit_comboboxes(units)
-
-    def convert_units(self, value: float, from_unit: str, to_unit: str) -> None:
+    def convert_units(self, value, from_unit, to_unit, conv_type):
         """
         Convertit une valeur d'une unité à une autre.
 
@@ -91,69 +39,75 @@ class ConversionController(QObject):
             value: La valeur à convertir
             from_unit: Unité source
             to_unit: Unité cible
+            conv_type: Type de conversion
         """
         try:
-            if self._is_temperature_conversion(from_unit, to_unit):
-                result = self._convert_temperature(value, from_unit, to_unit)
-            else:
-                result = self._convert_standard(value, from_unit, to_unit)
+            if not all([value, from_unit, to_unit, conv_type]):
+                self.error_occurred.emit("Tous les champs sont obligatoires")
+                return
 
-            self.conversion_result.emit(f"{value} {from_unit} = {result:.6f} {to_unit}")
+            result = self.model.convert(float(value), from_unit, to_unit, conv_type)
+            self.conversion_result.emit(result, to_unit)
 
-        except (ValueError, KeyError) as e:
+        except ValueError as e:
+            self.error_occurred.emit("Veuillez entrer une valeur numérique valide")
+        except Exception as e:
             self.error_occurred.emit(f"Erreur de conversion: {str(e)}")
 
-    def _is_temperature_conversion(self, from_unit: str, to_unit: str) -> bool:
-        """Vérifie s'il s'agit d'une conversion de température"""
-        temp_units = self.CONVERSION_CATEGORIES["Température"]
-        return from_unit in temp_units or to_unit in temp_units
+    def swap_units(self):
+        """Inverse les unités source et cible."""
+        if (
+            self.view.from_unit_combo.currentText()
+            and self.view.to_unit_combo.currentText()
+        ):
+            from_idx = self.view.from_unit_combo.currentIndex()
+            to_idx = self.view.to_unit_combo.currentIndex()
 
-    def _convert_standard(self, value: float, from_unit: str, to_unit: str) -> float:
-        """
-        Effectue une conversion standard basée sur des facteurs.
+            self.view.from_unit_combo.setCurrentIndex(to_idx)
+            self.view.to_unit_combo.setCurrentIndex(from_idx)
 
-        Args:
-            value: Valeur à convertir
-            from_unit: Unité source
-            to_unit: Unité cible
+            # Si une valeur est présente, on relance la conversion
+            if self.view.amount_input.text():
+                self.convert_units(
+                    self.view.amount_input.text(),
+                    self.view.from_unit_combo.currentText(),
+                    self.view.to_unit_combo.currentText(),
+                    self.view.conversion_type_combo.currentText(),
+                )
 
-        Returns:
-            La valeur convertie
-        """
-        try:
-            base_value = value * self.CONVERSION_FACTORS[from_unit]
-            return base_value / self.CONVERSION_FACTORS[to_unit]
-        except KeyError as e:
-            raise ValueError(f"Unité non supportée: {e}")
+    def update_conversion_types(self, category):
+        """Met à jour les types de conversion disponibles."""
+        if not category:
+            return
 
-    def _convert_temperature(self, value: float, from_unit: str, to_unit: str) -> float:
-        """
-        Convertit une température entre différentes unités.
+        conv_types = self.model.get_conversion_types(category)
+        self.view.update_conversion_types(conv_types)
 
-        Args:
-            value: Température à convertir
-            from_unit: Unité source (C, F, K)
-            to_unit: Unité cible (C, F, K)
+        if conv_types:
+            self.view.conversion_type_combo.setCurrentIndex(0)
 
-        Returns:
-            La température convertie
-        """
-        # D'abord convertir en Celsius
-        if from_unit == "Celsius":
-            celsius = value
-        elif from_unit == "Fahrenheit":
-            celsius = (value - 32) * 5 / 9
-        elif from_unit == "Kelvin":
-            celsius = value - 273.15
-        else:
-            raise ValueError(f"Unité non supportée: {from_unit}")
+    def update_units(self, category):
+        """Met à jour les unités disponibles pour une catégorie."""
+        if not category:
+            return
 
-        # Puis convertir de Celsius vers l'unité cible
-        if to_unit == "Celsius":
-            return celsius
-        elif to_unit == "Fahrenheit":
-            return (celsius * 9 / 5) + 32
-        elif to_unit == "Kelvin":
-            return celsius + 273.15
-        else:
-            raise ValueError(f"Unité non supportée: {to_unit}")
+        units = self.model.get_units_for_category(category)
+        self.view.update_units(units)
+
+    def set_categories(self, categories):
+        """Définit les catégories disponibles."""
+        self.view.set_categories(categories)
+
+        if categories:
+            self.view.category_combo.setCurrentIndex(0)
+            self.current_category = categories[0]
+            self.update_conversion_types(categories[0])
+            self.update_units(categories[0])
+
+    def show_error(self, message):
+        """Affiche un message d'erreur."""
+        self.error_occurred.emit(message)
+
+    def clear(self):
+        """Réinitialise l'interface."""
+        self.view.clear()

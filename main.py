@@ -2,17 +2,29 @@
 # -*- coding: utf-8 -*-
 
 import sys
-from PyQt6.QtWidgets import QApplication, QMainWindow, QVBoxLayout, QWidget, QTabWidget
+from PyQt6.QtWidgets import (
+    QApplication,
+    QMainWindow,
+    QVBoxLayout,
+    QWidget,
+    QTabWidget,
+    QStatusBar,
+    QLabel,
+)
+from PyQt6.QtCore import Qt, QTimer
+
 from views.calculator_view import CalculatorView
 from views.scientific_view import ScientificView
 from views.advanced_view import AdvancedView
 from views.conversion_view import ConversionView
 from views.currency_view import CurrencyView
+
 from models.calculator_model import CalculatorModel
 from models.scientific_model import ScientificCalculatorModel
 from models.advanced_model import AdvancedCalculatorModel
 from models.conversion_model import ConversionModel
 from models.currency_model import CurrencyModel
+
 from controllers.calculator_controller import CalculatorController
 from controllers.scientific_controller import ScientificController
 from controllers.advanced_controller import AdvancedController

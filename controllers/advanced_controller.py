@@ -1,9 +1,8 @@
-from PyQt6.QtCore import QObject
+from PyQt6.QtCore import QObject, pyqtSignal
 from PyQt6.QtGui import QPixmap
 import numpy as np
 from sympy.parsing.sympy_parser import parse_expr
 from sympy import Symbol, diff, integrate, solve, limit, oo
-from typing import Dict, Optional, Tuple, Union
 import matplotlib.pyplot as plt
 from matplotlib.backends.backend_qt5agg import FigureCanvas
 
@@ -15,9 +14,9 @@ class AdvancedController(QObject):
     """
 
     # Signaux
-    calculation_complete = QObject().pyqtSignal(str, str)
-    error_occurred = QObject().pyqtSignal(str)
-    graph_updated = QObject().pyqtSignal(QPixmap)
+    calculation_complete = pyqtSignal(str, str)
+    error_occurred = pyqtSignal(str)
+    graph_updated = pyqtSignal(QPixmap)
 
     def __init__(self, model, view):
         super().__init__()
@@ -26,218 +25,119 @@ class AdvancedController(QObject):
         self.connect_signals()
 
     def connect_signals(self):
-        """Connecte les signaux de la vue aux méthodes du contrôleur"""
+        """Connecte les signaux de la vue aux méthodes du contrôleur."""
         self.view.calculate_clicked.connect(self.calculate_expression)
-        self.view.plot_clicked.connect(self.plot_expression)
+        self.view.plot_clicked.connect(self.plot_function)
         self.view.solve_clicked.connect(self.solve_equation)
         self.view.differentiate_clicked.connect(self.differentiate_expression)
         self.view.integrate_clicked.connect(self.integrate_expression)
         self.view.limit_clicked.connect(self.calculate_limit)
         self.view.series_clicked.connect(self.calculate_series)
 
-    def calculate_expression(
-        self, expression: str, variables: Dict[str, float]
-    ) -> None:
-        """
-        Calcule la valeur d'une expression avec les variables fournies.
-
-        Args:
-            expression: L'expression à évaluer
-            variables: Dictionnaire des variables et leurs valeurs
-        """
+    def calculate_expression(self, expression, variables):
+        """Calcule le résultat d'une expression mathématique."""
         try:
-            for var, val in variables.items():
-                expression = expression.replace(var, str(val))
-
-            math_funcs = self._get_math_functions()
-            result = str(eval(expression, {"__builtins__": None}, math_funcs))
-
-            self.calculation_complete.emit(expression, result)
-
+            result = self.model.evaluate_expression(expression, variables)
+            self.calculation_complete.emit(expression, str(result))
         except Exception as e:
             self.error_occurred.emit(f"Erreur de calcul: {str(e)}")
 
-    def _get_math_functions(self) -> Dict[str, object]:
-        """Retourne les fonctions mathématiques disponibles"""
-        return {
-            "sin": np.sin,
-            "cos": np.cos,
-            "tan": np.tan,
-            "exp": np.exp,
-            "log": np.log,
-            "sqrt": np.sqrt,
-            "pi": np.pi,
-            "e": np.e,
-            "j": 1j,
-        }
-
-    def plot_expression(
-        self,
-        expression: str,
-        x_range: Tuple[float, float],
-        y_range: Optional[Tuple[float, float]] = None,
-    ) -> None:
-        """
-        Trace le graphe d'une expression mathématique.
-
-        Args:
-            expression: L'expression à tracer
-            x_range: Tuple (min, max) pour l'axe des x
-            y_range: Optionnel, tuple (min, max) pour l'axe des y
-        """
+    def plot_function(self, expression, x_range, y_range):
+        """Trace le graphe d'une fonction."""
         try:
-            x = np.linspace(x_range[0], x_range[1], 1000)
-            math_funcs = self._get_math_functions()
-            math_funcs["x"] = x
-            y = eval(expression, {"__builtins__": None}, math_funcs)
+            x = np.linspace(x_range[0], x_range[1], 400)
+            y = self.model.evaluate_expression(expression, {"x": x})
 
+            # Création de la figure
             fig, ax = plt.subplots()
             ax.plot(x, y)
+
+            # Configuration du graphe
             ax.set_xlabel("x")
-            ax.set_ylabel("y")
+            ax.set_ylabel("f(x)")
             ax.set_title(f"Graphe de {expression}")
+            ax.grid(True)
 
-            if y_range:
-                ax.set_ylim(y_range)
-
+            # Conversion en QPixmap
             canvas = FigureCanvas(fig)
-            pixmap = QPixmap(canvas.size())
-            canvas.render(pixmap)
+            canvas.draw()
+
+            # Création d'un QPixmap à partir de la figure
+            width, height = fig.get_size_inches() * fig.get_dpi()
+            pixmap = QPixmap(int(width), int(height))
+            pixmap.fill()
+
+            # Sauvegarde de la figure dans le QPixmap
+            fig.savefig("temp_plot.png")
+            pixmap = QPixmap("temp_plot.png")
+
+            # Émission du signal avec le graphe
             self.graph_updated.emit(pixmap)
 
         except Exception as e:
             self.error_occurred.emit(f"Erreur lors du tracé: {str(e)}")
 
-    def solve_equation(self, equation: str, variable: str = "x") -> None:
-        """
-        Résout une équation symbolique.
-
-        Args:
-            equation: L'équation à résoudre (ex: "x**2 - 1 = 0")
-            variable: La variable à résoudre (par défaut: 'x')
-        """
+    def solve_equation(self, equation, variable):
+        """Résout une équation pour une variable donnée."""
         try:
-            eq = equation.replace("=", "-")
-            sympy_eq = parse_expr(eq)
-            solution = solve(sympy_eq, Symbol(variable))
-
+            solution = self.model.solve_equation(equation, variable)
             self.calculation_complete.emit(
-                f"Résolution de {equation}", f"Solution: {solution}"
+                f"Résolution de {equation} pour {variable}", f"Solution: {solution}"
             )
-
         except Exception as e:
-            msg = f"Erreur lors de la résolution: {str(e)}"
-            self.error_occurred.emit(msg)
+            self.error_occurred.emit(f"Erreur de résolution: {str(e)}")
 
-    def differentiate_expression(
-        self, expression: str, variable: str = "x", order: int = 1
-    ) -> None:
-        """
-        Calcule la dérivée d'une expression.
-
-        Args:
-            expression: L'expression à dériver
-            variable: Variable de dérivation (par défaut: 'x')
-            order: Ordre de dérivation (par défaut: 1)
-        """
+    def differentiate_expression(self, expression, variable, order=1):
+        """Calcule la dérivée d'une expression."""
         try:
-            expr = parse_expr(expression)
-            derivative = diff(expr, Symbol(variable), order)
-
+            derivative = self.model.differentiate(expression, variable, order)
             self.calculation_complete.emit(
-                f"Dérivée d'ordre {order} de {expression}",
-                f"par rapport à {variable}: {derivative}",
+                f"Dérivée d'ordre {order} de {expression} par rapport à {variable}",
+                f"Résultat: {derivative}",
             )
-
         except Exception as e:
-            msg = f"Erreur lors du calcul de la dérivée: {str(e)}"
-            self.error_occurred.emit(msg)
+            self.error_occurred.emit(f"Erreur de dérivation: {str(e)}")
 
-    def integrate_expression(
-        self,
-        expression: str,
-        variable: str = "x",
-        lower: Optional[float] = None,
-        upper: Optional[float] = None,
-    ) -> None:
-        """
-        Calcule l'intégrale d'une expression.
-
-        Args:
-            expression: L'expression à intégrer
-            variable: Variable d'intégration (par défaut: 'x')
-            lower: Borne inférieure (optionnel)
-            upper: Borne supérieure (optionnel)
-        """
+    def integrate_expression(self, expression, variable, lower=None, upper=None):
+        """Calcule l'intégrale d'une expression."""
         try:
-            expr = parse_expr(expression)
-
             if lower is not None and upper is not None:
-                result = integrate(expr, (Symbol(variable), lower, upper))
-                result_str = f"de {lower} à {upper}: {result}"
+                # Intégrale définie
+                result = self.model.definite_integrate(
+                    expression, variable, float(lower), float(upper)
+                )
+                self.calculation_complete.emit(
+                    f"Intégrale de {expression} de {lower} à {upper} par rapport à {variable}",
+                    f"Résultat: {result}",
+                )
             else:
-                result = integrate(expr, Symbol(variable))
-                result_str = f"{result} + C"
-
-            self.calculation_complete.emit(
-                f"Intégrale de {expression}", f"Résultat: {result_str}"
-            )
-
+                # Intégrale indéfinie
+                result = self.model.indefinite_integrate(expression, variable)
+                self.calculation_complete.emit(
+                    f"Primitive de {expression} par rapport à {variable}",
+                    f"Résultat: {result} + C",
+                )
         except Exception as e:
-            msg = f"Erreur lors du calcul de l'intégrale: {str(e)}"
-            self.error_occurred.emit(msg)
+            self.error_occurred.emit(f"Erreur d'intégration: {str(e)}")
 
-    def calculate_limit(
-        self,
-        expression: str,
-        variable: str,
-        point: Union[float, str],
-        direction: str = "+",
-    ) -> None:
-        """
-        Calcule la limite d'une expression.
-
-        Args:
-            expression: L'expression dont on veut la limite
-            variable: La variable de la limite
-            point: Le point vers lequel tend la variable
-            direction: '+' pour la limite à droite, '-' pour la limite à gauche
-        """
+    def calculate_limit(self, expression, variable, point, direction):
+        """Calcule la limite d'une expression."""
         try:
-            expr = parse_expr(expression)
-            limit_point = oo if point == "oo" else point
-            lim = limit(expr, Symbol(variable), limit_point, dir=direction)
-
+            lim = self.model.calculate_limit(expression, variable, point, direction)
             self.calculation_complete.emit(
-                f"Limite de {expression} quand {variable} -> {point}{direction}",
+                f"Limite de {expression} quand {variable} -> {point}{'⁻' if direction == '-' else ''}",
                 f"Résultat: {lim}",
             )
-
         except Exception as e:
-            msg = f"Erreur lors du calcul de la limite: {str(e)}"
-            self.error_occurred.emit(msg)
+            self.error_occurred.emit(f"Erreur de calcul de limite: {str(e)}")
 
-    def calculate_series(
-        self, expression: str, variable: str, point: float = 0, order: int = 5
-    ) -> None:
-        """
-        Calcule le développement en série d'une expression.
-
-        Args:
-            expression: L'expression à développer
-            variable: La variable du développement
-            point: Point autour duquel effectuer le développement
-            order: Ordre du développement
-        """
+    def calculate_series(self, expression, variable, point, order):
+        """Calcule le développement en série d'une expression."""
         try:
-            expr = parse_expr(expression)
-            series = expr.series(Symbol(variable), point, order).removeO()
-
+            series = self.model.series_expansion(expression, variable, point, order)
             self.calculation_complete.emit(
-                f"Développement en série de {expression}",
-                f"autour de {point}: {series}",
+                f"Développement en série de {expression} autour de {point} à l'ordre {order}",
+                f"Résultat: {series}",
             )
-
         except Exception as e:
-            msg = f"Erreur lors du calcul du développement: {str(e)}"
-            self.error_occurred.emit(msg)
+            self.error_occurred.emit(f"Erreur de calcul de série: {str(e)}")

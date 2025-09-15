@@ -1,106 +1,183 @@
 from PyQt6.QtCore import QObject, pyqtSignal
-from typing import Dict
-import re
 import math
+from typing import Dict, Any, Optional
 
 
 class ScientificController(QObject):
     """
-    Contrôleur pour les fonctionnalités scientifiques de la calculatrice.
-    Gère les calculs scientifiques et la conversion d'unités.
+    Contrôleur pour les opérations scientifiques.
+    Gère les calculs avancés comme les fonctions trigonométriques.
     """
 
     # Signaux
-    result_ready = pyqtSignal(str)  # Résultat du calcul
-    error_occurred = pyqtSignal(str)  # Message d'erreur
+    calculation_complete = pyqtSignal(str, str)  # expression, résultat
+    error_occurred = pyqtSignal(str)
 
     def __init__(self, model, view):
         super().__init__()
         self.model = model
         self.view = view
+        self.angle_unit = "DEG"  # DEG, RAD, GRAD
         self.connect_signals()
 
     def connect_signals(self):
-        """Connecte les signaux de la vue aux méthodes du contrôleur"""
+        """Connecte les signaux de la vue aux méthodes du contrôleur."""
+        self.view.button_clicked.connect(self.on_button_clicked)
+        self.view.function_clicked.connect(self.on_function_clicked)
+        self.view.angle_unit_changed.connect(self.set_angle_unit)
         self.view.calculate_clicked.connect(self.calculate_expression)
-        self.view.unit_conversion_clicked.connect(self.convert_units)
-        self.view.scientific_function_clicked.connect(self.handle_scientific_function)
 
-    def calculate_expression(self, expression: str) -> None:
-        """
-        Évalue une expression mathématique.
+    def set_angle_unit(self, unit):
+        """Définit l'unité d'angle à utiliser."""
+        self.angle_unit = unit
 
-        Args:
-            expression: L'expression à évaluer
-        """
+    def on_button_clicked(self, button_text):
+        """Gère le clic sur un bouton de la calculatrice."""
+        current = self.view.get_display_text()
+
+        if button_text == "C":
+            self.view.clear_display()
+        elif button_text == "⌫":
+            self.view.backspace()
+        elif button_text == "±":
+            self.view.toggle_sign()
+        elif button_text == "=":
+            self.calculate_expression()
+        else:
+            # Ajoute le texte du bouton à l'affichage
+            self.view.append_to_display(button_text)
+
+    def on_function_clicked(self, function_name):
+        """Gère le clic sur une fonction scientifique."""
+        current = self.view.get_display_text()
+
         try:
-            expr = expression.replace("π", "math.pi").replace("e", "math.e")
+            if function_name in ["sin", "cos", "tan", "asin", "acos", "atan"]:
+                # Gestion des fonctions trigonométriques
+                value = float(current)
 
-            if self.model.angle_mode == "DEG":
-                expr = self._convert_deg_to_rad(expr)
+                # Conversion en radians si nécessaire
+                if self.angle_unit == "DEG":
+                    value = math.radians(value)
+                elif self.angle_unit == "GRAD":
+                    value = math.radians(value * 0.9)
 
-            result = str(eval(expr, {"__builtins__": None}, self._get_math_functions()))
+                # Application de la fonction
+                if function_name == "sin":
+                    result = math.sin(value)
+                elif function_name == "cos":
+                    result = math.cos(value)
+                elif function_name == "tan":
+                    result = math.tan(value)
+                elif function_name == "asin":
+                    result = math.asin(value)
+                    # Conversion inverse pour l'affichage
+                    if self.angle_unit == "DEG":
+                        result = math.degrees(result)
+                    elif self.angle_unit == "GRAD":
+                        result = math.degrees(result) * 10 / 9
+                elif function_name == "acos":
+                    result = math.acos(value)
+                    # Conversion inverse pour l'affichage
+                    if self.angle_unit == "DEG":
+                        result = math.degrees(result)
+                    elif self.angle_unit == "GRAD":
+                        result = math.degrees(result) * 10 / 9
+                elif function_name == "atan":
+                    result = math.atan(value)
+                    # Conversion inverse pour l'affichage
+                    if self.angle_unit == "DEG":
+                        result = math.degrees(result)
+                    elif self.angle_unit == "GRAD":
+                        result = math.degrees(result) * 10 / 9
 
-            self.result_ready.emit(result)
+                self.view.set_display_text(str(result))
+
+            elif function_name == "log":
+                # Logarithme décimal
+                result = math.log10(float(current))
+                self.view.set_display_text(str(result))
+
+            elif function_name == "ln":
+                # Logarithme népérien
+                result = math.log(float(current))
+                self.view.set_display_text(str(result))
+
+            elif function_name == "exp":
+                # Exponentielle
+                result = math.exp(float(current))
+                self.view.set_display_text(str(result))
+
+            elif function_name == "x²":
+                # Carré
+                result = float(current) ** 2
+                self.view.set_display_text(str(result))
+
+            elif function_name == "√":
+                # Racine carrée
+                result = math.sqrt(float(current))
+                self.view.set_display_text(str(result))
+
+            elif function_name == "x^y":
+                # Puissance (nécessite une deuxième entrée)
+                self.view.append_to_display("^")
+
+            elif function_name == "π":
+                # Constante pi
+                self.view.set_display_text(str(math.pi))
+
+            elif function_name == "e":
+                # Constante e
+                self.view.set_display_text(str(math.e))
+
+            elif function_name == "x!":
+                # Factorielle
+                n = int(float(current))
+                if n < 0:
+                    raise ValueError(
+                        "Factorielle non définie pour les nombres négatifs"
+                    )
+                result = math.factorial(n)
+                self.view.set_display_text(str(result))
 
         except Exception as e:
             self.error_occurred.emit(f"Erreur de calcul: {str(e)}")
 
-    def _convert_deg_to_rad(self, expression: str) -> str:
-        """Convertit les angles de degrés en radians"""
-        trig_funcs = ["sin", "cos", "tan", "asin", "acos", "atan"]
-        for func in trig_funcs:
-            pattern = re.escape(func) + r"\(([^)]+)\)"
-            replacement = f"math.radians({func}(math.radians(\\1)))"
-            expression = re.sub(pattern, replacement, expression)
-        return expression
-
-    def _get_math_functions(self) -> Dict[str, object]:
-        """Retourne les fonctions mathématiques disponibles"""
-        return {
-            "sin": math.sin,
-            "cos": math.cos,
-            "tan": math.tan,
-            "asin": math.asin,
-            "acos": math.acos,
-            "atan": math.atan,
-            "sqrt": math.sqrt,
-            "log": math.log10,
-            "ln": math.log,
-            "exp": math.exp,
-            "factorial": math.factorial,
-            "pi": math.pi,
-            "e": math.e,
-            "radians": math.radians,
-            "degrees": math.degrees,
-        }
-
-    def convert_units(self, value: float, from_unit: str, to_unit: str) -> None:
-        """Convertit une valeur d'une unité à une autre"""
+    def calculate_expression(self):
+        """Évalue l'expression mathématique actuelle."""
         try:
-            result = self.model.convert_units(value, from_unit, to_unit)
-            msg = f"{value} {from_unit} = {result} {to_unit}"
-            self.result_ready.emit(msg)
-        except Exception as e:
-            self.error_occurred.emit(f"Erreur de conversion: {str(e)}")
+            expression = self.view.get_display_text()
 
-    def handle_scientific_function(self, func_name: str, value: float) -> None:
-        """Gère les fonctions scientifiques avancées"""
-        try:
-            if func_name == "factorial":
-                result = math.factorial(int(value))
-            elif func_name == "sqrt":
-                result = math.sqrt(value)
-            elif func_name == "log10":
-                result = math.log10(value)
-            elif func_name == "ln":
-                result = math.log(value)
-            elif func_name == "exp":
-                result = math.exp(value)
-            else:
-                raise ValueError(f"Fonction non supportée: {func_name}")
+            # Remplace les symboles spéciaux
+            expression = expression.replace("^", "**")
 
-            self.result_ready.emit(f"{func_name}({value}) = {result}")
+            # Crée un dictionnaire de fonctions et constantes disponibles
+            math_funcs = {
+                "sin": math.sin,
+                "cos": math.cos,
+                "tan": math.tan,
+                "asin": math.asin,
+                "acos": math.acos,
+                "atan": math.atan,
+                "log": math.log10,
+                "ln": math.log,
+                "exp": math.exp,
+                "sqrt": math.sqrt,
+                "pi": math.pi,
+                "e": math.e,
+                "radians": math.radians,
+                "degrees": math.degrees,
+            }
+
+            # Évalue l'expression de manière sécurisée
+            result = eval(expression, {"__builtins__": None}, math_funcs)
+
+            # Affiche le résultat
+            self.view.set_display_text(str(result))
 
         except Exception as e:
-            self.error_occurred.emit(f"Erreur de calcul: {str(e)}")
+            self.error_occurred.emit(f"Erreur d'expression: {str(e)}")
+
+    def show_error(self, message):
+        """Affiche un message d'erreur."""
+        self.error_occurred.emit(message)
