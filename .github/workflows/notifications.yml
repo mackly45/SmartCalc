@@ -14,30 +14,40 @@ jobs:
        github.event.workflow_run.event == 'pull_request')
     runs-on: ubuntu-latest
     steps:
-      - name: Send failure notification
+      - name: Send PR comment (if this is a PR)
+        if: github.event.workflow_run.event == 'pull_request' && github.event.workflow_run.pull_requests[0]
         uses: actions/github-script@v6
         with:
           script: |
-            const event = '${{ github.event.workflow_run.event }}';
-            const refType = event === 'push' ? 'commit' : 'PR';
-            const { data: issue } = await github.rest.issues.createComment({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              issue_number: context.payload.workflow_run.pull_requests[0]?.number || 0,
-              body: `❌ **Build Failed**
-              
-              Workflow **${{ github.event.workflow_run.name }}** failed for ${refType}.
-              
-              **Details:**
-              - Workflow: ${{ github.event.workflow_run.name }}
-              - Run: [${{ github.run_id }}](${{ github.event.workflow_run.html_url }})
-              - Commit: [${context.sha.slice(0, 7)}](${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/commit/${context.sha})
-              
-              Please check the logs for more details.`
-            });
+            try {
+              const { data: issue } = await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: context.payload.workflow_run.pull_requests[0].number,
+                body: `❌ **Build Failed**
+                
+                Workflow **${{ github.event.workflow_run.name }}** failed for this PR.
+                
+                **Details:**
+                - Workflow: ${{ github.event.workflow_run.name }}
+                - Run: [${{ github.run_id }}](${{ github.event.workflow_run.html_url }})
+                - Commit: [${context.sha.slice(0, 7)}](${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/commit/${context.sha})
+                
+                Please check the logs for more details.`
+              });
+            } catch (error) {
+              console.error('Error creating PR comment:', error);
+              // Don't fail the step if comment creation fails
+              core.setOutput('comment-created', 'false');
+            }
+        id: pr-comment
 
       - name: Send Slack notification
-        if: failure() && github.event_name == 'workflow_run' && github.event.workflow_run.event == 'push'
+        if: >
+          failure() && 
+          github.event_name == 'workflow_run' && 
+          github.event.workflow_run.event == 'push' &&
+          secrets.SLACK_WEBHOOK != ''
         uses: rtCamp/action-slack-notify@v2
         env:
           SLACK_WEBHOOK: ${{ secrets.SLACK_WEBHOOK }}
@@ -45,9 +55,16 @@ jobs:
           SLACK_TITLE: "Build Failed"
           SLACK_USERNAME: "GitHub Actions"
           SLACK_ICON: "https://github.githubassets.com/images/modules/logos_page/GitHub-Mark.png"
+        id: slack-notification
 
       - name: Send email notification
-        if: failure() && github.event_name == 'workflow_run' && github.event.workflow_run.event == 'push'
+        if: >
+          failure() && 
+          github.event_name == 'workflow_run' && 
+          github.event.workflow_run.event == 'push' &&
+          secrets.EMAIL_TO != '' &&
+          secrets.EMAIL_USERNAME != '' &&
+          secrets.EMAIL_PASSWORD != ''
         uses: dawidd6/action-send-mail@v3
         with:
           server_address: smtp.gmail.com
@@ -56,7 +73,7 @@ jobs:
           password: ${{secrets.EMAIL_PASSWORD}}
           subject: "❌ Build Failed: ${{ github.repository }} - ${{ github.ref_name }}"
           to: ${{secrets.EMAIL_TO}}
-          from: "GitHub Actions <${{secrets.EMAIL_FROM}}>"
+          from: "GitHub Actions <${{secrets.EMAIL_FROM || 'noreply@github.com'}}>"
           body: |
             Workflow **${{ github.workflow }}** failed for commit ${{ github.sha }}
             
@@ -68,3 +85,12 @@ jobs:
             - View logs: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
             
             Please check the logs for more information.
+        id: email-notification
+
+      - name: Log notification status
+        if: always()
+        run: |
+          echo "Notification status:"
+          echo "- PR Comment: ${{ steps.pr-comment.outputs.comment-created || 'Skipped' }}"
+          echo "- Slack: ${{ steps.slack-notification.outcome || 'Skipped' }}"
+          echo "- Email: ${{ steps.email-notification.outcome || 'Skipped' }}"
