@@ -1,5 +1,5 @@
-from PyQt6.QtCore import QObject
-from typing import Dict, Optional, Union
+from PyQt6.QtCore import QObject, pyqtSignal
+from typing import Dict
 import re
 import math
 
@@ -34,14 +34,11 @@ class ScientificController(QObject):
             expression: L'expression à évaluer
         """
         try:
-            # Remplace les constantes mathématiques
             expr = expression.replace("π", "math.pi").replace("e", "math.e")
 
-            # Gestion des fonctions trigonométriques
             if self.model.angle_mode == "DEG":
                 expr = self._convert_deg_to_rad(expr)
 
-            # Évalue l'expression de manière sécurisée
             result = str(eval(expr, {"__builtins__": None}, self._get_math_functions()))
 
             self.result_ready.emit(result)
@@ -50,17 +47,16 @@ class ScientificController(QObject):
             self.error_occurred.emit(f"Erreur de calcul: {str(e)}")
 
     def _convert_deg_to_rad(self, expression: str) -> str:
-        """Convertit les angles de degrés en radians pour les fonctions trigo"""
+        """Convertit les angles de degrés en radians"""
         trig_funcs = ["sin", "cos", "tan", "asin", "acos", "atan"]
         for func in trig_funcs:
             pattern = f"{func}\(([^)]+)\)"
-            expression = re.sub(
-                pattern, f"math.radians({func}(math.radians(\1)))", expression
-            )
+            replacement = f"math.radians({func}(math.radians(\\1)))"
+            expression = re.sub(pattern, replacement, expression)
         return expression
 
     def _get_math_functions(self) -> Dict[str, object]:
-        """Retourne un dictionnaire des fonctions mathématiques disponibles"""
+        """Retourne les fonctions mathématiques disponibles"""
         return {
             "sin": math.sin,
             "cos": math.cos,
@@ -80,28 +76,16 @@ class ScientificController(QObject):
         }
 
     def convert_units(self, value: float, from_unit: str, to_unit: str) -> None:
-        """
-        Convertit une valeur d'une unité à une autre.
-
-        Args:
-            value: La valeur à convertir
-            from_unit: Unité source
-            to_unit: Unité cible
-        """
+        """Convertit une valeur d'une unité à une autre"""
         try:
             result = self.model.convert_units(value, from_unit, to_unit)
-            self.result_ready.emit(f"{value} {from_unit} = {result} {to_unit}")
+            msg = f"{value} {from_unit} = {result} {to_unit}"
+            self.result_ready.emit(msg)
         except Exception as e:
             self.error_occurred.emit(f"Erreur de conversion: {str(e)}")
 
     def handle_scientific_function(self, func_name: str, value: float) -> None:
-        """
-        Gère les fonctions scientifiques avancées.
-
-        Args:
-            func_name: Nom de la fonction à appliquer
-            value: Valeur d'entrée
-        """
+        """Gère les fonctions scientifiques avancées"""
         try:
             if func_name == "factorial":
                 result = math.factorial(int(value))

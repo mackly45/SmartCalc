@@ -1,119 +1,159 @@
 from PyQt6.QtCore import QObject, pyqtSignal
-from models.conversion_model import ConversionModel, ConversionType
+from typing import Dict, List, Optional
 
 
 class ConversionController(QObject):
     """
-    Contrôleur pour gérer les conversions d'unités.
-    Gère les interactions entre la vue et le modèle.
+    Contrôleur pour les conversions d'unités.
+    Gère la logique de conversion entre différentes unités de mesure.
     """
 
-    # Signaux pour la mise à jour de l'interface utilisateur
-    conversion_result = pyqtSignal(float, str)  # Émet le résultat et l'unité cible
-    units_updated = pyqtSignal(list)  # Émet la liste des unités disponibles
-    error_occurred = pyqtSignal(str)  # Émet les messages d'erreur
-    history_updated = pyqtSignal(list)  # Émet l'historique des conversions
+    # Signaux
+    conversion_result = pyqtSignal(str)  # Résultat de la conversion
+    error_occurred = pyqtSignal(str)  # Message d'erreur
 
-    def __init__(self):
+    # Catégories de conversion disponibles
+    CONVERSION_CATEGORIES = {
+        "Longueur": ["mètres", "kilomètres", "milles", "pieds", "pouces"],
+        "Masse": ["grammes", "kilogrammes", "livres", "onces"],
+        "Température": ["Celsius", "Fahrenheit", "Kelvin"],
+        "Volume": ["litres", "millilitres", "gallons", "pintes"],
+        "Surface": ["m²", "pieds²", "hectares", "acres"],
+    }
+
+    # Facteurs de conversion
+    CONVERSION_FACTORS = {
+        # Longueur (en mètres)
+        "mètres": 1.0,
+        "kilomètres": 1000.0,
+        "milles": 1609.34,
+        "pieds": 0.3048,
+        "pouces": 0.0254,
+        # Masse (en grammes)
+        "grammes": 1.0,
+        "kilogrammes": 1000.0,
+        "livres": 453.592,
+        "onces": 28.3495,
+        # Volume (en litres)
+        "litres": 1.0,
+        "millilitres": 0.001,
+        "gallons": 3.78541,
+        "pintes": 0.568261,
+        # Surface (en mètres carrés)
+        "m²": 1.0,
+        "pieds²": 0.092903,
+        "hectares": 10000.0,
+        "acres": 4046.86,
+    }
+
+    def __init__(self, model, view):
         super().__init__()
-        self.model = ConversionModel()
-        self._current_conversion_type = ConversionType.LENGTH.value
-        self._from_unit = "m"  # Unité par défaut
-        self._to_unit = "cm"  # Unité cible par défaut
-        self._history = []
+        self.model = model
+        self.view = view
+        self.connect_signals()
 
-    def set_conversion_type(self, conversion_type: str) -> None:
-        """Définit le type de conversion actuel (longueur, masse, etc.)"""
-        if conversion_type in [t.value for t in ConversionType]:
-            self._current_conversion_type = conversion_type
-            # Mettre à jour les unités disponibles
-            units = self.model.get_units(conversion_type)
-            self.units_updated.emit(units)
+    def connect_signals(self):
+        """Connecte les signaux de la vue aux méthodes du contrôleur"""
+        self.view.convert_clicked.connect(self.convert_units)
+        self.view.category_changed.connect(self.update_units)
 
-            # Définir des valeurs par défaut appropriées
-            if units:
-                self._from_unit = units[0]
-                self._to_unit = units[1] if len(units) > 1 else units[0]
-        else:
-            self.error_occurred.emit("Type de conversion non valide")
+    def get_categories(self) -> List[str]:
+        """Retourne la liste des catégories de conversion"""
+        return list(self.CONVERSION_CATEGORIES.keys())
 
-    def set_units(self, from_unit: str, to_unit: str) -> None:
-        """Définit les unités source et cible"""
-        available_units = self.model.get_units(self._current_conversion_type)
-        if from_unit in available_units and to_unit in available_units:
-            self._from_unit = from_unit
-            self._to_unit = to_unit
-        else:
-            self.error_occurred.emit("Unités non valides pour ce type de conversion")
+    def get_units_for_category(self, category: str) -> List[str]:
+        """
+        Retourne les unités disponibles pour une catégorie donnée.
 
-    def convert(self, value: str) -> None:
-        """Effectue la conversion et émet le résultat"""
+        Args:
+            category: La catégorie d'unités
+
+        Returns:
+            Liste des unités disponibles
+        """
+        return self.CONVERSION_CATEGORIES.get(category, [])
+
+    def update_units(self, category: str) -> None:
+        """
+        Met à jour les unités disponibles dans la vue.
+
+        Args:
+            category: La catégorie sélectionnée
+        """
+        units = self.get_units_for_category(category)
+        self.view.update_unit_comboboxes(units)
+
+    def convert_units(self, value: float, from_unit: str, to_unit: str) -> None:
+        """
+        Convertit une valeur d'une unité à une autre.
+
+        Args:
+            value: La valeur à convertir
+            from_unit: Unité source
+            to_unit: Unité cible
+        """
         try:
-            # Vérifier si la valeur d'entrée est valide
-            if not value:
-                self.error_occurred.emit("Veuillez entrer une valeur à convertir")
-                return
-
-            numeric_value = float(value)
-
-            # Effectuer la conversion
-            result = self.model.convert(
-                numeric_value,
-                self._from_unit,
-                self._to_unit,
-                self._current_conversion_type,
-            )
-
-            if result is not None:
-                # Mettre à jour l'historique
-                self._add_to_history(numeric_value, result)
-                # Émettre le résultat
-                self.conversion_result.emit(result, self._to_unit)
+            if self._is_temperature_conversion(from_unit, to_unit):
+                result = self._convert_temperature(value, from_unit, to_unit)
             else:
-                self.error_occurred.emit("Erreur lors de la conversion")
+                result = self._convert_standard(value, from_unit, to_unit)
 
-        except ValueError:
-            self.error_occurred.emit("Veuillez entrer un nombre valide")
+            self.conversion_result.emit(f"{value} {from_unit} = {result:.6f} {to_unit}")
 
-    def _add_to_history(self, from_value: float, to_value: float) -> None:
-        """Ajoute une conversion à l'historique"""
-        entry = {
-            "type": self._current_conversion_type,
-            "from_value": from_value,
-            "from_unit": self._from_unit,
-            "to_value": to_value,
-            "to_unit": self._to_unit,
-            "timestamp": "now",  # À remplacer par datetime.now()
-        }
-        self._history.insert(0, entry)
-        # Limiter l'historique aux 10 dernières entrées
-        self._history = self._history[:10]
-        # Mettre à jour la vue
-        self.history_updated.emit(self._history)
+        except (ValueError, KeyError) as e:
+            self.error_occurred.emit(f"Erreur de conversion: {str(e)}")
 
-    def get_conversion_types(self) -> list:
-        """Retourne la liste des types de conversion disponibles"""
-        return self.model.get_conversion_types()
+    def _is_temperature_conversion(self, from_unit: str, to_unit: str) -> bool:
+        """Vérifie s'il s'agit d'une conversion de température"""
+        temp_units = self.CONVERSION_CATEGORIES["Température"]
+        return from_unit in temp_units or to_unit in temp_units
 
-    def get_current_units(self) -> tuple:
-        """Retourne les unités actuellement sélectionnées"""
-        return self._from_unit, self._to_unit
+    def _convert_standard(self, value: float, from_unit: str, to_unit: str) -> float:
+        """
+        Effectue une conversion standard basée sur des facteurs.
 
-    def get_available_units(self) -> list:
-        """Retourne la liste des unités disponibles pour le type de conversion actuel"""
-        return self.model.get_units(self._current_conversion_type)
+        Args:
+            value: Valeur à convertir
+            from_unit: Unité source
+            to_unit: Unité cible
 
-    def swap_units(self) -> None:
-        """Échange les unités source et cible"""
-        self._from_unit, self._to_unit = self._to_unit, self._from_unit
-        # Émettre le signal pour mettre à jour l'interface
-        self.units_updated.emit(self.get_available_units())
+        Returns:
+            La valeur convertie
+        """
+        try:
+            base_value = value * self.CONVERSION_FACTORS[from_unit]
+            return base_value / self.CONVERSION_FACTORS[to_unit]
+        except KeyError as e:
+            raise ValueError(f"Unité non supportée: {e}")
 
-        # Si une conversion a déjà été effectuée, on relance la conversion
-        if hasattr(self, "_last_value"):
-            self.convert(str(self._last_value))
+    def _convert_temperature(self, value: float, from_unit: str, to_unit: str) -> float:
+        """
+        Convertit une température entre différentes unités.
 
-    def cleanup(self):
-        """Nettoyage avant la fermeture de l'application"""
-        # Sauvegarder l'historique si nécessaire
-        pass
+        Args:
+            value: Température à convertir
+            from_unit: Unité source (C, F, K)
+            to_unit: Unité cible (C, F, K)
+
+        Returns:
+            La température convertie
+        """
+        # D'abord convertir en Celsius
+        if from_unit == "Celsius":
+            celsius = value
+        elif from_unit == "Fahrenheit":
+            celsius = (value - 32) * 5 / 9
+        elif from_unit == "Kelvin":
+            celsius = value - 273.15
+        else:
+            raise ValueError(f"Unité non supportée: {from_unit}")
+
+        # Puis convertir de Celsius vers l'unité cible
+        if to_unit == "Celsius":
+            return celsius
+        elif to_unit == "Fahrenheit":
+            return (celsius * 9 / 5) + 32
+        elif to_unit == "Kelvin":
+            return celsius + 273.15
+        else:
+            raise ValueError(f"Unité non supportée: {to_unit}")
