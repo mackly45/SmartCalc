@@ -1,30 +1,12 @@
 from PyQt6.QtCore import QObject
 from PyQt6.QtGui import QPixmap
 import numpy as np
-import sympy as sp
 from sympy.parsing.sympy_parser import parse_expr
-from sympy.parsing.latex import parse_latex
-from sympy import (
-    Symbol,
-    diff,
-    integrate,
-    solve,
-    limit,
-    oo,
-    exp,
-    log,
-    sin,
-    cos,
-    tan,
-    sqrt,
-    pi,
-    E,
-    I,
-)
-import re
-from typing import List, Dict, Any, Tuple, Union, Optional
+from sympy import Symbol, diff, integrate, solve, limit, oo
+from typing import Dict, Optional, Tuple, Union
+import math
 import matplotlib.pyplot as plt
-from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
+from matplotlib.backends.backend_qt5agg import FigureCanvas
 
 
 class AdvancedController(QObject):
@@ -65,11 +47,9 @@ class AdvancedController(QObject):
             variables: Dictionnaire des variables et leurs valeurs
         """
         try:
-            # Remplace les variables par leurs valeurs
             for var, val in variables.items():
                 expression = expression.replace(var, str(val))
 
-            # Évalue l'expression de manière sécurisée
             result = str(
                 eval(
                     expression,
@@ -108,7 +88,6 @@ class AdvancedController(QObject):
             y_range: Optionnel, tuple (min, max) pour l'axe des y
         """
         try:
-            # Convertit l'expression en une fonction évaluable
             x = np.linspace(x_range[0], x_range[1], 1000)
             y = eval(
                 expression,
@@ -126,7 +105,6 @@ class AdvancedController(QObject):
                 },
             )
 
-            # Crée le graphique
             fig, ax = plt.subplots()
             ax.plot(x, y)
             ax.set_xlabel("x")
@@ -136,7 +114,6 @@ class AdvancedController(QObject):
             if y_range:
                 ax.set_ylim(y_range)
 
-            # Convertit en QPixmap et émet le signal
             canvas = FigureCanvas(fig)
             pixmap = QPixmap(canvas.size())
             canvas.render(pixmap)
@@ -154,11 +131,8 @@ class AdvancedController(QObject):
             variable: La variable à résoudre (par défaut: 'x')
         """
         try:
-            # Nettoie l'équation et la convertit en expression sympy
             eq = equation.replace("=", "-")
             sympy_eq = parse_expr(eq)
-
-            # Résout l'équation
             solution = solve(sympy_eq, Symbol(variable))
 
             self.calculation_complete.emit(
@@ -180,19 +154,17 @@ class AdvancedController(QObject):
             order: Ordre de dérivation (par défaut: 1)
         """
         try:
-            # Convertit l'expression en expression sympy
             expr = parse_expr(expression)
-
-            # Calcule la dérivée
             derivative = diff(expr, Symbol(variable), order)
 
             self.calculation_complete.emit(
-                f"Dérivée d'ordre {order} de {expression} par rapport à {variable}",
+                f"Dérivée d'ordre {order} de {expression} par rapport à " f"{variable}",
                 f"Résultat: {derivative}",
             )
 
         except Exception as e:
-            self.error_occurred.emit(f"Erreur lors du calcul de la dérivée: {str(e)}")
+            msg = f"Erreur lors du calcul de la dérivée: {str(e)}"
+            self.error_occurred.emit(msg)
 
     def integrate_expression(
         self,
@@ -211,10 +183,8 @@ class AdvancedController(QObject):
             upper: Borne supérieure (intégrale définie si fournie)
         """
         try:
-            # Convertit l'expression en expression sympy
             expr = parse_expr(expression)
 
-            # Calcule l'intégrale
             if lower is not None and upper is not None:
                 result = integrate(expr, (Symbol(variable), lower, upper))
                 result_str = f"de {lower} à {upper}: {result}"
@@ -227,7 +197,8 @@ class AdvancedController(QObject):
             )
 
         except Exception as e:
-            self.error_occurred.emit(f"Erreur lors du calcul de l'intégrale: {str(e)}")
+            msg = f"Erreur lors du calcul de l'intégrale: {str(e)}"
+            self.error_occurred.emit(msg)
 
     def calculate_limit(
         self,
@@ -246,10 +217,7 @@ class AdvancedController(QObject):
             direction: '+' pour la limite à droite, '-' pour la limite à gauche
         """
         try:
-            # Convertit l'expression en expression sympy
             expr = parse_expr(expression)
-
-            # Calcule la limite
             limit_point = oo if point == "oo" else point
             lim = limit(expr, Symbol(variable), limit_point, dir=direction)
 
@@ -259,7 +227,8 @@ class AdvancedController(QObject):
             )
 
         except Exception as e:
-            self.error_occurred.emit(f"Erreur lors du calcul de la limite: {str(e)}")
+            msg = f"Erreur lors du calcul de la limite: {str(e)}"
+            self.error_occurred.emit(msg)
 
     def calculate_series(
         self, expression: str, variable: str, point: float = 0, order: int = 5
@@ -274,10 +243,7 @@ class AdvancedController(QObject):
             order: Ordre du développement
         """
         try:
-            # Convertit l'expression en expression sympy
             expr = parse_expr(expression)
-
-            # Calcule le développement en série
             series = expr.series(Symbol(variable), point, order).removeO()
 
             self.calculation_complete.emit(
@@ -286,6 +252,5 @@ class AdvancedController(QObject):
             )
 
         except Exception as e:
-            self.error_occurred.emit(
-                f"Erreur lors du calcul du développement en série: {str(e)}"
-            )
+            msg = f"Erreur lors du calcul du développement en série: {str(e)}"
+            self.error_occurred.emit(msg)
