@@ -1,11 +1,13 @@
 from PyQt6.QtCore import QObject, pyqtSignal
 from models.conversion_model import ConversionModel, ConversionType
 
+
 class ConversionController(QObject):
     """
     Contrôleur pour gérer les conversions d'unités.
     Gère les interactions entre la vue et le modèle.
     """
+
     # Signaux pour la mise à jour de l'interface utilisateur
     conversion_result = pyqtSignal(float, str)  # Émet le résultat et l'unité cible
     units_updated = pyqtSignal(list)  # Émet la liste des unités disponibles
@@ -16,8 +18,8 @@ class ConversionController(QObject):
         super().__init__()
         self.model = ConversionModel()
         self._current_conversion_type = ConversionType.LENGTH.value
-        self._from_unit = 'm'  # Unité par défaut
-        self._to_unit = 'cm'   # Unité cible par défaut
+        self._from_unit = "m"  # Unité par défaut
+        self._to_unit = "cm"  # Unité cible par défaut
         self._history = []
 
     def set_conversion_type(self, conversion_type: str) -> None:
@@ -27,7 +29,7 @@ class ConversionController(QObject):
             # Mettre à jour les unités disponibles
             units = self.model.get_units(conversion_type)
             self.units_updated.emit(units)
-            
+
             # Définir des valeurs par défaut appropriées
             if units:
                 self._from_unit = units[0]
@@ -51,17 +53,17 @@ class ConversionController(QObject):
             if not value:
                 self.error_occurred.emit("Veuillez entrer une valeur à convertir")
                 return
-                
+
             numeric_value = float(value)
-            
+
             # Effectuer la conversion
             result = self.model.convert(
                 numeric_value,
                 self._from_unit,
                 self._to_unit,
-                self._current_conversion_type
+                self._current_conversion_type,
             )
-            
+
             if result is not None:
                 # Mettre à jour l'historique
                 self._add_to_history(numeric_value, result)
@@ -69,19 +71,19 @@ class ConversionController(QObject):
                 self.conversion_result.emit(result, self._to_unit)
             else:
                 self.error_occurred.emit("Erreur lors de la conversion")
-                
+
         except ValueError:
             self.error_occurred.emit("Veuillez entrer un nombre valide")
 
     def _add_to_history(self, from_value: float, to_value: float) -> None:
         """Ajoute une conversion à l'historique"""
         entry = {
-            'type': self._current_conversion_type,
-            'from_value': from_value,
-            'from_unit': self._from_unit,
-            'to_value': to_value,
-            'to_unit': self._to_unit,
-            'timestamp': 'now'  # À remplacer par datetime.now()
+            "type": self._current_conversion_type,
+            "from_value": from_value,
+            "from_unit": self._from_unit,
+            "to_value": to_value,
+            "to_unit": self._to_unit,
+            "timestamp": "now",  # À remplacer par datetime.now()
         }
         self._history.insert(0, entry)
         # Limiter l'historique aux 10 dernières entrées
@@ -106,9 +108,9 @@ class ConversionController(QObject):
         self._from_unit, self._to_unit = self._to_unit, self._from_unit
         # Émettre le signal pour mettre à jour l'interface
         self.units_updated.emit(self.get_available_units())
-        
+
         # Si une conversion a déjà été effectuée, on relance la conversion
-        if hasattr(self, '_last_value'):
+        if hasattr(self, "_last_value"):
             self.convert(str(self._last_value))
 
     def cleanup(self):

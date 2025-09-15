@@ -17,10 +17,10 @@ from .conversion_model import ConversionModel, ConversionType
 from .advanced_model import AdvancedCalculatorModel
 
 __all__ = [
-    'CalculatorModel',
-    'ScientificCalculatorModel',
-    'CurrencyModel',
-    'ConversionModel',
-    'ConversionType',
-    'AdvancedCalculatorModel'
+    "CalculatorModel",
+    "ScientificCalculatorModel",
+    "CurrencyModel",
+    "ConversionModel",
+    "ConversionType",
+    "AdvancedCalculatorModel",
 ]

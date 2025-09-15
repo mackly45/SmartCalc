@@ -7,7 +7,11 @@ try:
     from setuptools import setup, find_packages
 except ImportError:
     import sys
-    print("Erreur: setuptools n'est pas installé. Veuillez l'installer avec 'pip install setuptools'", file=sys.stderr)
+
+    print(
+        "Erreur: setuptools n'est pas installé. Veuillez l'installer avec 'pip install setuptools'",
+        file=sys.stderr,
+    )
     sys.exit(1)
 
 # Configuration de l'installation du package
@@ -20,11 +24,11 @@ setup(
     packages=find_packages(),
     install_requires=requirements,
     entry_points={
-        'console_scripts': [
-            'smartcalc=smartcalc.main:main',
+        "console_scripts": [
+            "smartcalc=smartcalc.main:main",
         ],
     },
-    python_requires='>=3.8',
+    python_requires=">=3.8",
     author="Votre Nom",
     author_email="votre@email.com",
     description="Une calculatrice scientifique avancée",

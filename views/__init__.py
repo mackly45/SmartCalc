@@ -17,9 +17,9 @@ from .conversion_view import ConversionView
 from .advanced_view import AdvancedView
 
 __all__ = [
-    'CalculatorView',
-    'ScientificView',
-    'CurrencyView',
-    'ConversionView',
-    'AdvancedView'
+    "CalculatorView",
+    "ScientificView",
+    "CurrencyView",
+    "ConversionView",
+    "AdvancedView",
 ]

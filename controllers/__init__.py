@@ -17,9 +17,9 @@ from .conversion_controller import ConversionController
 from .advanced_controller import AdvancedController
 
 __all__ = [
-    'CalculatorController',
-    'ScientificController',
-    'CurrencyController',
-    'ConversionController',
-    'AdvancedController'
+    "CalculatorController",
+    "ScientificController",
+    "CurrencyController",
+    "ConversionController",
+    "AdvancedController",
 ]
