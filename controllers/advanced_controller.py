@@ -4,7 +4,6 @@ import numpy as np
 from sympy.parsing.sympy_parser import parse_expr
 from sympy import Symbol, diff, integrate, solve, limit, oo
 from typing import Dict, Optional, Tuple, Union
-import math
 import matplotlib.pyplot as plt
 from matplotlib.backends.backend_qt5agg import FigureCanvas
 
@@ -158,7 +157,7 @@ class AdvancedController(QObject):
             derivative = diff(expr, Symbol(variable), order)
 
             self.calculation_complete.emit(
-                f"Dérivée d'ordre {order} de {expression} par rapport à " f"{variable}",
+                f"Dérivée d'ordre {order} de {expression} " f"par rapport à {variable}",
                 f"Résultat: {derivative}",
             )
 

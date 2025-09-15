@@ -2,7 +2,7 @@ name: Notifications
 
 on:
   workflow_run:
-    workflows: ["Python CI/CD", "Deploy Documentation"]
+    workflows: ["Python CI/CD"]
     types:
       - completed
 
@@ -10,87 +10,30 @@ jobs:
   notify-failure:
     if: >
       github.event.workflow_run.conclusion == 'failure' &&
-      (github.event.workflow_run.event == 'push' || 
-       github.event.workflow_run.event == 'pull_request')
+      github.event.workflow_run.event == 'pull_request' &&
+      github.event.workflow_run.pull_requests[0]
     runs-on: ubuntu-latest
     steps:
-      - name: Send PR comment (if this is a PR)
-        if: github.event.workflow_run.event == 'pull_request' && github.event.workflow_run.pull_requests[0]
+      - name: Add PR comment
         uses: actions/github-script@v6
         with:
           script: |
             try {
-              const { data: issue } = await github.rest.issues.createComment({
+              await github.rest.issues.createComment({
                 owner: context.repo.owner,
                 repo: context.repo.repo,
                 issue_number: context.payload.workflow_run.pull_requests[0].number,
-                body: `❌ **Build Failed**
+                body: `❌ **Échec du build**
                 
-                Workflow **${{ github.event.workflow_run.name }}** failed for this PR.
+                Le workflow **${{ github.event.workflow_run.name }}** a échoué pour cette PR.
                 
-                **Details:**
-                - Workflow: ${{ github.event.workflow_run.name }}
-                - Run: [${{ github.run_id }}](${{ github.event.workflow_run.html_url }})
-                - Commit: [${context.sha.slice(0, 7)}](${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/commit/${context.sha})
+                **Détails :**
+                - Workflow : ${{ github.event.workflow_run.name }}
+                - Exécution : [${{ github.run_id }}](${{ github.event.workflow_run.html_url }})
+                - Commit : [${context.sha.slice(0, 7)}](${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/commit/${context.sha})
                 
-                Please check the logs for more details.`
+                Consultez les logs pour plus de détails.`
               });
             } catch (error) {
-              console.error('Error creating PR comment:', error);
-              // Don't fail the step if comment creation fails
-              core.setOutput('comment-created', 'false');
+              console.error('Erreur lors de la création du commentaire :', error);
             }
-        id: pr-comment
-
-      - name: Send Slack notification
-        if: >
-          failure() && 
-          github.event_name == 'workflow_run' && 
-          github.event.workflow_run.event == 'push' &&
-          secrets.SLACK_WEBHOOK != ''
-        uses: rtCamp/action-slack-notify@v2
-        env:
-          SLACK_WEBHOOK: ${{ secrets.SLACK_WEBHOOK }}
-          SLACK_MESSAGE: "❌ Build failed in ${{ github.repository }}: ${{ github.event.workflow_run.html_url }}"
-          SLACK_TITLE: "Build Failed"
-          SLACK_USERNAME: "GitHub Actions"
-          SLACK_ICON: "https://github.githubassets.com/images/modules/logos_page/GitHub-Mark.png"
-        id: slack-notification
-
-      - name: Send email notification
-        if: >
-          failure() && 
-          github.event_name == 'workflow_run' && 
-          github.event.workflow_run.event == 'push' &&
-          secrets.EMAIL_TO != '' &&
-          secrets.EMAIL_USERNAME != '' &&
-          secrets.EMAIL_PASSWORD != ''
-        uses: dawidd6/action-send-mail@v3
-        with:
-          server_address: smtp.gmail.com
-          server_port: 587
-          username: ${{secrets.EMAIL_USERNAME}}
-          password: ${{secrets.EMAIL_PASSWORD}}
-          subject: "❌ Build Failed: ${{ github.repository }} - ${{ github.ref_name }}"
-          to: ${{secrets.EMAIL_TO}}
-          from: "GitHub Actions <${{secrets.EMAIL_FROM || 'noreply@github.com'}}>"
-          body: |
-            Workflow **${{ github.workflow }}** failed for commit ${{ github.sha }}
-            
-            **Details:**
-            - Repository: ${{ github.repository }}
-            - Branch: ${{ github.ref_name }}
-            - Workflow: ${{ github.workflow }}
-            - Run: ${{ github.run_id }}
-            - View logs: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
-            
-            Please check the logs for more information.
-        id: email-notification
-
-      - name: Log notification status
-        if: always()
-        run: |
-          echo "Notification status:"
-          echo "- PR Comment: ${{ steps.pr-comment.outputs.comment-created || 'Skipped' }}"
-          echo "- Slack: ${{ steps.slack-notification.outcome || 'Skipped' }}"
-          echo "- Email: ${{ steps.email-notification.outcome || 'Skipped' }}"
