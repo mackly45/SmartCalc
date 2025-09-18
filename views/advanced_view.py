@@ -1,6 +1,3 @@
-import math
-from typing import Optional, Tuple, Dict, List, Union
-
 from PyQt6.QtWidgets import (
     QWidget,
     QVBoxLayout,
@@ -11,24 +8,14 @@ from PyQt6.QtWidgets import (
     QComboBox,
     QMessageBox,
     QTabWidget,
-    QGroupBox,
     QFormLayout,
     QTextEdit,
-    QSplitter,
-    QSizePolicy,
     QCheckBox,
 )
-from PyQt6.QtCore import Qt, pyqtSignal, QSize
-from PyQt6.QtGui import QFont, QColor, QPen, QPainter, QPixmap
+from PyQt6.QtCore import pyqtSignal
 
-# Import matplotlib avec configuration pour Qt6
-import matplotlib
-
-matplotlib.use("Qt5Agg")
-from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
+from matplotlib.backends.backend_qtagg import FigureCanvasQTAgg as FigureCanvas
 from matplotlib.figure import Figure
-import numpy as np
-from sympy import symbols, sympify, diff, integrate, solve, limit, oo, series
 
 
 class AdvancedView(QWidget):
@@ -42,13 +29,18 @@ class AdvancedView(QWidget):
     plot_clicked = pyqtSignal(str, tuple, tuple)  # expr, x_range, y_range
     solve_clicked = pyqtSignal(str, str)  # equation, variable
     differentiate_clicked = pyqtSignal(str, str, int)  # expr, var, order
-    integrate_clicked = pyqtSignal(str, str, float, float)  # expr, var, a, b
+    # Utiliser 'object' pour permettre None (intégrale indéfinie)
+    integrate_clicked = pyqtSignal(str, str, object, object)  # expr, var, a|None, b|None
     limit_clicked = pyqtSignal(str, str, str, str)  # expr, var, point, direction
     series_clicked = pyqtSignal(str, str, float, int)  # expr, var, point, order
 
     def __init__(self, parent=None):
         super().__init__(parent)
         self.variables = {}
+        # Constantes de labels pour éviter les duplications (Sonar S1192)
+        self.LABEL_EXPRESSION = "Expression:"
+        self.LABEL_RESULT = "Résultat:"
+        self.LABEL_VARIABLE = "Variable:"
         self.setup_ui()
 
     def setup_ui(self):
@@ -102,10 +94,10 @@ class AdvancedView(QWidget):
         self.result_display.setReadOnly(True)
 
         # Ajout des composants au layout
-        layout.addWidget(QLabel("Expression:"))
+        layout.addWidget(QLabel(self.LABEL_EXPRESSION))
         layout.addWidget(self.expression_input)
         layout.addWidget(self.calculate_button)
-        layout.addWidget(QLabel("Résultat:"))
+        layout.addWidget(QLabel(self.LABEL_RESULT))
         layout.addWidget(self.result_display)
 
         self.symbolic_tab.setLayout(layout)
@@ -203,14 +195,14 @@ class AdvancedView(QWidget):
 
         # Formulaire de paramètres
         form = QFormLayout()
-        form.addRow("Expression:", self.deriv_expression)
-        form.addRow("Variable:", self.deriv_var)
+        form.addRow(self.LABEL_EXPRESSION, self.deriv_expression)
+        form.addRow(self.LABEL_VARIABLE, self.deriv_var)
         form.addRow("Ordre:", self.deriv_order)
 
         # Ajout des composants au layout
         layout.addLayout(form)
         layout.addWidget(self.deriv_button)
-        layout.addWidget(QLabel("Résultat:"))
+        layout.addWidget(QLabel(self.LABEL_RESULT))
         layout.addWidget(self.deriv_result)
 
         self.derivative_tab.setLayout(layout)
@@ -244,8 +236,8 @@ class AdvancedView(QWidget):
 
         # Formulaire de paramètres
         form = QFormLayout()
-        form.addRow("Expression:", self.integral_expression)
-        form.addRow("Variable:", self.integral_var)
+        form.addRow(self.LABEL_EXPRESSION, self.integral_expression)
+        form.addRow(self.LABEL_VARIABLE, self.integral_var)
         form.addRow("Borne inférieure:", self.lower_bound)
         form.addRow("Borne supérieure:", self.upper_bound)
 
@@ -253,7 +245,7 @@ class AdvancedView(QWidget):
         layout.addLayout(form)
         layout.addWidget(self.indefinite_integral)
         layout.addWidget(self.integral_button)
-        layout.addWidget(QLabel("Résultat:"))
+        layout.addWidget(QLabel(self.LABEL_RESULT))
         layout.addWidget(self.integral_result)
 
         self.integral_tab.setLayout(layout)
@@ -284,15 +276,15 @@ class AdvancedView(QWidget):
 
         # Formulaire de paramètres
         form = QFormLayout()
-        form.addRow("Expression:", self.limit_expression)
-        form.addRow("Variable:", self.limit_var)
+        form.addRow(self.LABEL_EXPRESSION, self.limit_expression)
+        form.addRow(self.LABEL_VARIABLE, self.limit_var)
         form.addRow("Point:", self.limit_point)
         form.addRow("Direction:", self.limit_direction)
 
         # Ajout des composants au layout
         layout.addLayout(form)
         layout.addWidget(self.limit_button)
-        layout.addWidget(QLabel("Résultat:"))
+        layout.addWidget(QLabel(self.LABEL_RESULT))
         layout.addWidget(self.limit_result)
 
         self.limit_tab.setLayout(layout)
@@ -322,8 +314,8 @@ class AdvancedView(QWidget):
 
         # Formulaire de paramètres
         form = QFormLayout()
-        form.addRow("Expression:", self.series_expression)
-        form.addRow("Variable:", self.series_var)
+        form.addRow(self.LABEL_EXPRESSION, self.series_expression)
+        form.addRow(self.LABEL_VARIABLE, self.series_var)
         form.addRow("Point:", self.series_point)
         form.addRow("Ordre:", self.series_order)
 
@@ -502,5 +494,6 @@ class AdvancedView(QWidget):
     def go_back(self):
         """Retourne à la vue précédente."""
         self.hide()
-        if hasattr(self, "parent") and self.parent():
-            self.parent().show()
+        parent = self.parentWidget()
+        if parent is not None and hasattr(parent, 'show'):
+            parent.show()

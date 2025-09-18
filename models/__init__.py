@@ -11,16 +11,15 @@ Ce package inclut les modèles suivants :
 
 # Import des modèles pour les rendre disponibles au niveau du package
 from .calculator_model import CalculatorModel
-from .scientific_model import ScientificCalculatorModel
+from .scientific_model import ScientificModel
 from .currency_model import CurrencyModel
-from .conversion_model import ConversionModel, ConversionType
+from .conversion_model import ConversionModel
 from .advanced_model import AdvancedCalculatorModel
 
 __all__ = [
     "CalculatorModel",
-    "ScientificCalculatorModel",
+    "ScientificModel",
     "CurrencyModel",
     "ConversionModel",
-    "ConversionType",
     "AdvancedCalculatorModel",
 ]

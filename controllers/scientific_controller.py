@@ -32,8 +32,6 @@ class ScientificController(QObject):
 
     def on_button_clicked(self, button_text):
         """Gère le clic sur un bouton de la calculatrice."""
-        current = self.view.get_display_text()
-
         if button_text == "C":
             self.view.clear_display()
         elif button_text == "⌫":
@@ -46,98 +44,67 @@ class ScientificController(QObject):
             # Ajoute le texte du bouton à l'affichage
             self.view.append_to_display(button_text)
 
+    def _convert_input_angle(self, value: float) -> float:
+        """Convertit la valeur en radians selon l'unité courante (pour sin/cos/tan)."""
+        if self.angle_unit == "DEG":
+            return math.radians(value)
+        if self.angle_unit == "GRAD":
+            return math.radians(value * 0.9)
+        return value  # RAD
+
+    def _convert_output_angle(self, value: float) -> float:
+        """Convertit le résultat des fonctions inverses selon l'unité courante."""
+        if self.angle_unit == "DEG":
+            return math.degrees(value)
+        if self.angle_unit == "GRAD":
+            return math.degrees(value) * 10 / 9
+        return value
+
     def on_function_clicked(self, function_name):
-        """Gère le clic sur une fonction scientifique."""
-        current = self.view.get_display_text()
-
+        """Gère le clic sur une fonction scientifique (refactorée pour réduire la complexité)."""
+        current_text = self.view.get_display_text()
         try:
-            if function_name in ["sin", "cos", "tan", "asin", "acos", "atan"]:
-                # Gestion des fonctions trigonométriques
-                value = float(current)
+            # Fonctions à un argument numérique simple
+            unary_numeric = {
+                "log": lambda x: math.log10(x),
+                "ln": lambda x: math.log(x),
+                "exp": lambda x: math.exp(x),
+                "x²": lambda x: x**2,
+                "√": lambda x: math.sqrt(x),
+                "π": lambda _: math.pi,
+                "e": lambda _: math.e,
+                "x!": lambda x: math.factorial(int(float(x))),
+            }
 
-                # Conversion en radians si nécessaire
-                if self.angle_unit == "DEG":
-                    value = math.radians(value)
-                elif self.angle_unit == "GRAD":
-                    value = math.radians(value * 0.9)
-
-                # Application de la fonction
-                if function_name == "sin":
-                    result = math.sin(value)
-                elif function_name == "cos":
-                    result = math.cos(value)
-                elif function_name == "tan":
-                    result = math.tan(value)
-                elif function_name == "asin":
-                    result = math.asin(value)
-                    # Conversion inverse pour l'affichage
-                    if self.angle_unit == "DEG":
-                        result = math.degrees(result)
-                    elif self.angle_unit == "GRAD":
-                        result = math.degrees(result) * 10 / 9
-                elif function_name == "acos":
-                    result = math.acos(value)
-                    # Conversion inverse pour l'affichage
-                    if self.angle_unit == "DEG":
-                        result = math.degrees(result)
-                    elif self.angle_unit == "GRAD":
-                        result = math.degrees(result) * 10 / 9
-                elif function_name == "atan":
-                    result = math.atan(value)
-                    # Conversion inverse pour l'affichage
-                    if self.angle_unit == "DEG":
-                        result = math.degrees(result)
-                    elif self.angle_unit == "GRAD":
-                        result = math.degrees(result) * 10 / 9
-
+            if function_name in ("sin", "cos", "tan"):
+                value = float(current_text)
+                value = self._convert_input_angle(value)
+                funcs = {"sin": math.sin, "cos": math.cos, "tan": math.tan}
+                result = funcs[function_name](value)
                 self.view.set_display_text(str(result))
+                return
 
-            elif function_name == "log":
-                # Logarithme décimal
-                result = math.log10(float(current))
+            if function_name in ("asin", "acos", "atan"):
+                value = float(current_text)
+                funcs = {"asin": math.asin, "acos": math.acos, "atan": math.atan}
+                result = funcs[function_name](value)
+                result = self._convert_output_angle(result)
                 self.view.set_display_text(str(result))
+                return
 
-            elif function_name == "ln":
-                # Logarithme népérien
-                result = math.log(float(current))
+            if function_name in unary_numeric:
+                x = float(current_text) if current_text not in ("π", "e") else None
+                result = unary_numeric[function_name](x) if x is not None else unary_numeric[function_name](0)
                 self.view.set_display_text(str(result))
+                return
 
-            elif function_name == "exp":
-                # Exponentielle
-                result = math.exp(float(current))
-                self.view.set_display_text(str(result))
-
-            elif function_name == "x²":
-                # Carré
-                result = float(current) ** 2
-                self.view.set_display_text(str(result))
-
-            elif function_name == "√":
-                # Racine carrée
-                result = math.sqrt(float(current))
-                self.view.set_display_text(str(result))
-
-            elif function_name == "x^y":
-                # Puissance (nécessite une deuxième entrée)
+            if function_name == "x^y":
+                # Ajoute l'opérateur de puissance et attend la seconde entrée
                 self.view.append_to_display("^")
+                return
 
-            elif function_name == "π":
-                # Constante pi
-                self.view.set_display_text(str(math.pi))
-
-            elif function_name == "e":
-                # Constante e
-                self.view.set_display_text(str(math.e))
-
-            elif function_name == "x!":
-                # Factorielle
-                n = int(float(current))
-                if n < 0:
-                    raise ValueError(
-                        "Factorielle non définie pour les nombres négatifs"
-                    )
-                result = math.factorial(n)
-                self.view.set_display_text(str(result))
+            # Si la fonction n'est pas reconnue
+            raise ValueError(f"Fonction inconnue: {function_name}")
 
         except Exception as e:
             self.error_occurred.emit(f"Erreur de calcul: {str(e)}")
@@ -180,3 +147,15 @@ class ScientificController(QObject):
     def show_error(self, message):
         """Affiche un message d'erreur."""
         self.error_occurred.emit(message)
+
+    # Harmonisation avec main.py
+    def initialize_ui(self):
+        """Initialise l'onglet scientifique (état par défaut)."""
+        # Par défaut on remet l'unité d'angle à DEG et on efface l'affichage
+        self.set_angle_unit("DEG")
+        if hasattr(self.view, 'clear_display'):
+            self.view.clear_display()
+
+    def cleanup(self):
+        """Nettoyage des ressources (aucune pour le moment)."""
+        pass

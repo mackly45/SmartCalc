@@ -121,3 +121,27 @@ class CurrencyController(QObject):
         # Si pas de données en cache, on met à jour les taux
         if not self.rates:
             self.update_rates()
+
+    # Harmonisation avec main.py
+    def initialize_ui(self):
+        """Initialise l'onglet devises (chargement des taux et de la vue)."""
+        try:
+            self.load_rates_from_cache()
+            if not self.rates:
+                self.update_rates()
+        except Exception as e:
+            self.error_occurred.emit(str(e))
+
+    def save_data(self):
+        """Sauvegarde les données nécessaires (cache des taux)."""
+        try:
+            # Utilise la méthode du modèle pour sauvegarder le cache
+            if hasattr(self.model, '_save_to_cache'):
+                self.model._save_to_cache()
+        except Exception as e:
+            # Ne pas faire échouer la fermeture: log via signal
+            self.error_occurred.emit(f"Erreur de sauvegarde: {e}")
+
+    def cleanup(self):
+        """Nettoyage éventuel (rien de spécifique pour l'instant)."""
+        pass

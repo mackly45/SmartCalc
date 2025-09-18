@@ -8,7 +8,7 @@ from PyQt6.QtWidgets import (
     QSizePolicy,
 )
 from PyQt6.QtCore import Qt, QSize, pyqtSignal
-from PyQt6.QtGui import QFont, QPainter, QPainterPath, QIcon, QResizeEvent
+from PyQt6.QtGui import QFont, QPainter, QPainterPath, QIcon, QResizeEvent, QColor
 
 
 class ModernButton(QPushButton):
@@ -269,3 +269,12 @@ class CalculatorView(QWidget):
 
     def clear_display(self):
         self.display.setText("0")
+
+    # Harmonisation avec CalculatorController
+    def update_expression(self, expr: str):
+        """Met à jour l'expression affichée (placeholder minimal)."""
+        # Cette vue ne possède pas encore d'étiquette d'expression dédiée.
+        # Implémentation minimale pour éviter les erreurs d'attribut.
+        # Optionnel: on pourrait afficher l'expression en tooltip du display.
+        if hasattr(self, 'display') and isinstance(expr, str):
+            self.display.setToolTip(expr)

@@ -20,7 +20,7 @@ from views.conversion_view import ConversionView
 from views.currency_view import CurrencyView
 
 from models.calculator_model import CalculatorModel
-from models.scientific_model import ScientificCalculatorModel
+from models.scientific_model import ScientificModel
 from models.advanced_model import AdvancedCalculatorModel
 from models.conversion_model import ConversionModel
 from models.currency_model import CurrencyModel
@@ -42,7 +42,7 @@ class MainWindow(QMainWindow):
 
         # Création des modèles
         self.calculator_model = CalculatorModel()
-        self.scientific_model = ScientificCalculatorModel()
+        self.scientific_model = ScientificModel()
         self.advanced_model = AdvancedCalculatorModel()
         self.conversion_model = ConversionModel()
         self.currency_model = CurrencyModel()
@@ -107,7 +107,9 @@ class MainWindow(QMainWindow):
     def setup_connections(self):
         """Établit les connexions entre les signaux et les slots."""
         # Connexion des signaux pour le convertisseur
-        self.conversion_view.convert_requested.connect(self._on_convert_requested)
+        self.conversion_view.convert_requested.connect(
+            lambda v, f, t, ct: self.conversion_controller.convert_units(v, f, t, ct)
+        )
         self.conversion_view.swap_units_requested.connect(
             self.conversion_controller.swap_units
         )
@@ -117,27 +119,14 @@ class MainWindow(QMainWindow):
 
         # Signaux du contrôleur de conversion
         self.conversion_controller.conversion_result.connect(
-            lambda v, u: self.conversion_view.update_result(v, u)
-        )
-        self.conversion_controller.units_updated.connect(
-            self.conversion_view.update_units
+            lambda v, u: self.conversion_view.set_result(v)
         )
         self.conversion_controller.error_occurred.connect(
             self.conversion_view.show_error
         )
-        self.conversion_controller.history_updated.connect(
-            self.conversion_view.update_history
-        )
 
         # Gestion du changement d'onglet
         self.tab_widget.currentChanged.connect(self.on_tab_changed)
-
-    def _on_convert_requested(self, value, from_unit, to_unit, conv_type):
-        """Gère une demande de conversion"""
-        # Mettre à jour les unités dans le contrôleur
-        self.conversion_controller.set_units(from_unit, to_unit)
-        # Lancer la conversion
-        self.conversion_controller.convert(str(value))
 
     def on_tab_changed(self, index):
         """Appelé lors du changement d'onglet"""
@@ -153,11 +142,11 @@ class MainWindow(QMainWindow):
         elif current_tab == self.advanced_view:
             self.advanced_controller.initialize_ui()
         elif current_tab == self.conversion_view:
-            # Initialisation spécifique au convertisseur
-            conversion_types = self.conversion_controller.get_conversion_types()
-            self.conversion_view.update_conversion_types(conversion_types)
-            if conversion_types:
-                self.conversion_controller.set_conversion_type(conversion_types[0])
+            # Initialisation spécifique au convertisseur (sans get_conversion_types)
+            categories = self.conversion_model.get_categories()
+            self.conversion_view.set_categories(categories)
+            if categories:
+                self.conversion_controller.on_category_changed(categories[0])
 
     def closeEvent(self, event):
         """Gère la fermeture de l'application"""
@@ -182,59 +171,7 @@ class MainWindow(QMainWindow):
         event.accept()
 
 
-def main():
-    """Point d'entrée principal de l'application."""
-    app = QApplication(sys.argv)
-
-    # Appliquer un style sombre à toute l'application
-    app.setStyle("Fusion")
-    app.setStyleSheet(
-        """
-        QMainWindow, QDialog, QWidget {
-            background-color: #1e1e2e;
-            color: #cdd6f4;
-        }
-        QPushButton {
-            background-color: #313244;
-            color: #cdd6f4;
-            border: none;
-            padding: 8px 16px;
-            border-radius: 4px;
-        }
-        QPushButton:hover {
-            background-color: #45475a;
-        }
-        QPushButton:pressed {
-            background-color: #585b70;
-        }
-        QLineEdit, QComboBox, QSpinBox, QDoubleSpinBox {
-            background-color: #1e1e2e;
-            color: #cdd6f4;
-            border: 1px solid #45475a;
-            padding: 5px;
-            border-radius: 4px;
-        }
-        QLabel {
-            color: #cdd6f4;
-        }
-    """
-    )
-
-    # Afficher l'écran de chargement
-    loading_screen = LoadingScreen()
-    loading_screen.show()
-
-    # Forcer l'affichage de l'écran de chargement
-    app.processEvents()
-
-    # Créer la fenêtre principale (mais ne pas l'afficher tout de suite)
-    main_window = MainWindow()
-
-    # Simuler un temps de chargement
-    QTimer.singleShot(2000, lambda: show_main_app(loading_screen, main_window))
-
-    sys.exit(app.exec())
-
+# --- Fonctions et classes globales ---
 
 def show_main_app(loading_screen, main_window):
     """Affiche l'application principale après le chargement"""
@@ -318,12 +255,66 @@ class LoadingScreen(QMainWindow):
 
     def center_window(self):
         """Centre la fenêtre sur l'écran"""
-        from PyQt6.QtGui import QApplication
+        from PyQt6.QtWidgets import QApplication
 
-        screen = QApplication.primaryScreen().geometry()
-        x = (screen.width() - self.width()) // 2
-        y = (screen.height() - self.height()) // 2
-        self.move(x, y)
+        screen = QApplication.primaryScreen()
+        if screen is not None:
+            geo = screen.geometry()
+            x = (geo.width() - self.width()) // 2
+            y = (geo.height() - self.height()) // 2
+            self.move(x, y)
+
+
+def main():
+    """Point d'entrée principal de l'application."""
+    app = QApplication(sys.argv)
+
+    # Appliquer un style sombre
+    app.setStyle("Fusion")
+    app.setStyleSheet(
+        """
+        QMainWindow, QDialog, QWidget {
+            background-color: #1e1e2e;
+            color: #cdd6f4;
+        }
+        QPushButton {
+            background-color: #313244;
+            color: #cdd6f4;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 4px;
+        }
+        QPushButton:hover {
+            background-color: #45475a;
+        }
+        QPushButton:pressed {
+            background-color: #585b70;
+        }
+        QLineEdit, QComboBox, QSpinBox, QDoubleSpinBox {
+            background-color: #1e1e2e;
+            color: #cdd6f4;
+            border: 1px solid #45475a;
+            padding: 5px;
+            border-radius: 4px;
+        }
+        QLabel {
+            color: #cdd6f4;
+        }
+    """
+    )
+
+    # Afficher l'écran de chargement
+    loading_screen = LoadingScreen()
+    loading_screen.show()
+    app.processEvents()
+
+    # Créer la fenêtre principale
+    main_window = MainWindow()
+
+    # Simuler un temps de chargement
+    QTimer.singleShot(2000, lambda: show_main_app(loading_screen, main_window))
+
+    sys.exit(app.exec())
 
 
 if __name__ == "__main__":
