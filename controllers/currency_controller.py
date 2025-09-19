@@ -136,7 +136,7 @@ class CurrencyController(QObject):
         """Sauvegarde les données nécessaires (cache des taux)."""
         try:
             # Utilise la méthode du modèle pour sauvegarder le cache
-            if hasattr(self.model, '_save_to_cache'):
+            if hasattr(self.model, "_save_to_cache"):
                 self.model._save_to_cache()
         except Exception as e:
             # Ne pas faire échouer la fermeture: log via signal

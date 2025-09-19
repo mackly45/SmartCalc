@@ -94,7 +94,11 @@ class ScientificController(QObject):
 
             if function_name in unary_numeric:
                 x = float(current_text) if current_text not in ("π", "e") else None
-                result = unary_numeric[function_name](x) if x is not None else unary_numeric[function_name](0)
+                result = (
+                    unary_numeric[function_name](x)
+                    if x is not None
+                    else unary_numeric[function_name](0)
+                )
                 self.view.set_display_text(str(result))
                 return
 
@@ -153,7 +157,7 @@ class ScientificController(QObject):
         """Initialise l'onglet scientifique (état par défaut)."""
         # Par défaut on remet l'unité d'angle à DEG et on efface l'affichage
         self.set_angle_unit("DEG")
-        if hasattr(self.view, 'clear_display'):
+        if hasattr(self.view, "clear_display"):
             self.view.clear_display()
 
     def cleanup(self):

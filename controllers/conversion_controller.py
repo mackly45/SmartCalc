@@ -22,10 +22,10 @@ class ConversionController(QObject):
     def connect_signals(self):
         """Connecte les signaux de la vue aux méthodes du contrôleur."""
         # La vue émet convert_requested(value, from_unit, to_unit, conv_type)
-        if hasattr(self.view, 'convert_requested'):
+        if hasattr(self.view, "convert_requested"):
             self.view.convert_requested.connect(self.convert_units)
         # Compat si certaines vues émettent encore convert_clicked(value, from_unit, to_unit)
-        if hasattr(self.view, 'convert_clicked'):
+        if hasattr(self.view, "convert_clicked"):
             self.view.convert_clicked.connect(self.convert_units)
         self.view.category_changed.connect(self.on_category_changed)
         self.view.swap_units_requested.connect(self.swap_units)
@@ -52,9 +52,9 @@ class ConversionController(QObject):
         self.current_type = category
         # Mettre à jour la liste des types si la vue le supporte
         types = [category] if category else []
-        if hasattr(self.view, 'update_conversion_types'):
+        if hasattr(self.view, "update_conversion_types"):
             self.view.update_conversion_types(types)
-        if hasattr(self.view, 'set_conversion_type') and types:
+        if hasattr(self.view, "set_conversion_type") and types:
             self.view.set_conversion_type(types[0])
         # Mettre à jour les unités disponibles
         units = self.model.get_units_for_category(category)
@@ -74,7 +74,7 @@ class ConversionController(QObject):
 
             # Si une valeur est présente, on relance la conversion
             # Harmonisé: l'input s'appelle value_input dans la vue
-            if hasattr(self.view, 'value_input') and self.view.value_input.text():
+            if hasattr(self.view, "value_input") and self.view.value_input.text():
                 self.convert_units(
                     self.view.value_input.text(),
                     self.view.from_unit_combo.currentText(),
@@ -87,10 +87,10 @@ class ConversionController(QObject):
         if not category:
             return
         types = [category]
-        if hasattr(self.view, 'update_conversion_types'):
+        if hasattr(self.view, "update_conversion_types"):
             self.view.update_conversion_types(types)
         self.current_type = types[0]
-        if hasattr(self.view, 'set_conversion_type'):
+        if hasattr(self.view, "set_conversion_type"):
             self.view.set_conversion_type(self.current_type)
 
     def update_units(self, category):

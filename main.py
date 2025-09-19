@@ -173,6 +173,7 @@ class MainWindow(QMainWindow):
 
 # --- Fonctions et classes globales ---
 
+
 def show_main_app(loading_screen, main_window):
     """Affiche l'application principale après le chargement"""
     main_window.showMaximized()
