@@ -20,7 +20,7 @@ class CurrencyModel:
     # Durée de validité du cache (en heures)
     CACHE_EXPIRY_HOURS = 24
 
-    def __init__(self, api_key: str = None):
+    def __init__(self, api_key: Optional[str] = None):
         """
         Initialise le modèle de devise.
 
@@ -28,8 +28,8 @@ class CurrencyModel:
             api_key: Clé API pour le service de taux de change
         """
         self.api_key = api_key or os.getenv("EXCHANGE_RATE_API_KEY")
-        self.rates = {}
-        self.last_update = None
+        self.rates: Dict[str, float] = {}
+        self.last_update: Optional[datetime] = None
         self.base_currency = "EUR"
 
     def get_rates(self) -> Dict[str, float]:
@@ -52,7 +52,7 @@ class CurrencyModel:
         Met à jour les taux de change depuis l'API.
 
         Returns:
-            True si la mise à jour a réussi, False sinon
+            True si la mise à jour a réussi, False si l'API échoue et que le cache est indisponible
         """
         if not self.api_key:
             raise ValueError("Clé API manquante pour le service de taux de change")
@@ -78,13 +78,9 @@ class CurrencyModel:
 
             return True
 
-        except requests.RequestException as e:
-            # En cas d'erreur, essaie de charger les données du cache
-            if self._load_from_cache():
-                return True
-            raise ConnectionError(
-                f"Impossible de mettre à jour les taux de change: {str(e)}"
-            )
+        except requests.RequestException:
+            # En cas d'erreur réseau/API, essaie de charger les données du cache
+            return self._load_from_cache()
 
     def convert(self, amount: float, from_currency: str, to_currency: str) -> float:
         """
@@ -162,7 +158,8 @@ class CurrencyModel:
 
             return True
 
-        except (IOError, json.JSONEncodeError):
+        # json.dump peut lever TypeError/ValueError selon le contenu sérialisé
+        except (IOError, TypeError, ValueError):
             return False
 
     def _load_from_cache(self) -> bool:
@@ -188,7 +185,8 @@ class CurrencyModel:
 
             return True
 
-        except (IOError, json.JSONDecodeError, ValueError):
+        # JSONDecodeError est un sous-type de ValueError; inutile de le dupliquer
+        except (IOError, ValueError):
             return False
 
     def get_supported_currencies(self) -> list:

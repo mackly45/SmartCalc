@@ -1,22 +1,21 @@
 import sys
 import os
+import math
 
 try:
-    import pytest
+    import pytest  # type: ignore[reportMissingImports]
 except ImportError:
-    # Skip pytest decorators if pytest is not available
+    # Fallback minimal si pytest n'est pas disponible: créer un stub sûr pour Pyright
     import types
 
-    sys.modules["pytest"] = types.ModuleType("pytest")
-
-    def skip(*args, **kwargs):
-        def decorator(func):
+    def _skip(*args, **kwargs):
+        def _decorator(func):
             return func
+        return _decorator
 
-        return decorator
-
-    sys.modules["pytest"].mark = types.SimpleNamespace()
-    sys.modules["pytest"].mark.skip = skip
+    pytest = types.SimpleNamespace(
+        mark=types.SimpleNamespace(skip=_skip)
+    )
 
 # Ajouter le répertoire parent au chemin Python pour les imports
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
@@ -31,10 +30,10 @@ def test_imports():
         from models.advanced_model import AdvancedCalculatorModel
 
         # Vérifier que les classes sont bien définies
-        assert CalculatorModel is not None
-        assert ScientificCalculatorModel is not None
-        assert CurrencyModel is not None
-        assert AdvancedCalculatorModel is not None
+        assert CalculatorModel
+        assert ScientificCalculatorModel
+        assert CurrencyModel
+        assert AdvancedCalculatorModel
 
     except ImportError as e:
         pytest.fail(f"Erreur d'importation : {e}")
@@ -85,10 +84,10 @@ def test_scientific_functions():
     sci = ScientificCalculatorModel()
 
     # Test de la fonction carrée
-    assert sci.evaluate_expression("sqrt(16)") == 4.0
+    assert math.isclose(sci.evaluate_expression("sqrt(16)"), 4.0, rel_tol=1e-9, abs_tol=0.0)
 
     # Test de la fonction puissance
-    assert sci.evaluate_expression("2**3") == 8.0
+    assert math.isclose(sci.evaluate_expression("2**3"), 8.0, rel_tol=1e-9, abs_tol=0.0)
 
 
 # Ce test sera ignoré car il nécessite une interface graphique
