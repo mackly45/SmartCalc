@@ -11,11 +11,10 @@ except ImportError:
     def _skip(*args, **kwargs):
         def _decorator(func):
             return func
+
         return _decorator
 
-    pytest = types.SimpleNamespace(
-        mark=types.SimpleNamespace(skip=_skip)
-    )
+    pytest = types.SimpleNamespace(mark=types.SimpleNamespace(skip=_skip))
 
 # Ajouter le répertoire parent au chemin Python pour les imports
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
@@ -84,7 +83,9 @@ def test_scientific_functions():
     sci = ScientificCalculatorModel()
 
     # Test de la fonction carrée
-    assert math.isclose(sci.evaluate_expression("sqrt(16)"), 4.0, rel_tol=1e-9, abs_tol=0.0)
+    assert math.isclose(
+        sci.evaluate_expression("sqrt(16)"), 4.0, rel_tol=1e-9, abs_tol=0.0
+    )
 
     # Test de la fonction puissance
     assert math.isclose(sci.evaluate_expression("2**3"), 8.0, rel_tol=1e-9, abs_tol=0.0)
