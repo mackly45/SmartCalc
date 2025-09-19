@@ -88,7 +88,7 @@ jobs:
         fail_ci_if_error: false
 
   lint:
-    name: Lint and type check
+    name: Lint (Ruff) and Type Check (Pyright)
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v3
@@ -98,22 +98,18 @@ jobs:
       with:
         python-version: "3.10"
     
-    - name: Install dependencies
+    - name: Install tools
       run: |
         python -m pip install --upgrade pip
         pip install -e .[dev]
+        pip install ruff pyright
     
-    - name: Run black
-      run: black --check .
+    # Black check est géré par le workflow format.yml, on évite la redondance ici
+    - name: Run Ruff (lint)
+      run: ruff check .
     
-    - name: Run flake8
-      run: flake8 .
-    
-    - name: Run mypy
-      run: mypy .
-    
-    - name: Run pylint
-      run: pylint smartcalc tests
+    - name: Run Pyright (type checking)
+      run: pyright
 
   security:
     name: Security checks

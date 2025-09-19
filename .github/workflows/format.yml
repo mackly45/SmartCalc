@@ -11,18 +11,21 @@ on:
       - '**/*.py'
   workflow_dispatch:
 
+permissions:
+  contents: write
+
 jobs:
   format:
     name: Format with Black
     runs-on: ubuntu-latest
     
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
       with:
-        fetch-depth: 0
+        persist-credentials: true
     
     - name: Set up Python 3.10
-      uses: actions/setup-python@v4
+      uses: actions/setup-python@v5
       with:
         python-version: '3.10'
     
@@ -31,24 +34,21 @@ jobs:
         python -m pip install --upgrade pip
         pip install black
     
-    - name: Check formatting with Black
-      id: black
-      continue-on-error: true
-      run: |
-        # Vérifier le formatage
-        black --check .
-        
-    - name: Commit changes if formatting is needed
-      if: steps.black.outcome == 'failure'
-      run: |
-        # Formater le code
-        black .
-        
-        # Configurer Git
-        git config --global user.name 'GitHub Actions'
-        git config --global user.email 'actions@github.com'
-        
-        # Créer un commit avec les changements
-        git add .
-        git diff-index --quiet HEAD || git commit -m "style: format code with Black [skip ci]"
-        git push
+    # On push: auto-fix and auto-commit using the GitHub token
+    - name: Run Black (apply fixes)
+      if: github.event_name == 'push' && github.actor != 'github-actions[bot]'
+      run: black .
+    
+    - name: Commit & Push if changed
+      if: github.event_name == 'push' && github.actor != 'github-actions[bot]'
+      uses: stefanzweifel/git-auto-commit-action@v5
+      with:
+        commit_message: "style: format code with Black [skip ci]"
+        branch: ${{ github.ref_name }}
+        commit_user_name: GitHub Actions
+        commit_user_email: actions@github.com
+    
+    # On PR: check-only (no push), fail if not formatted
+    - name: Check formatting with Black (PR only)
+      if: github.event_name == 'pull_request'
+      run: black --check .
