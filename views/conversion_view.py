@@ -129,7 +129,6 @@ class ConversionView(QWidget):
         self.history_label = QLabel("Aucune conversion récente")
         scroll_layout.addWidget(self.history_label)
 
-
     def on_category_changed(self, category):
         """Gère le changement de catégorie."""
         self.category_changed.emit(category)

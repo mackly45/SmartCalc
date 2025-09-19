@@ -276,5 +276,5 @@ class CalculatorView(QWidget):
         # Cette vue ne possède pas encore d'étiquette d'expression dédiée.
         # Implémentation minimale pour éviter les erreurs d'attribut.
         # Optionnel: on pourrait afficher l'expression en tooltip du display.
-        if hasattr(self, 'display') and isinstance(expr, str):
+        if hasattr(self, "display") and isinstance(expr, str):
             self.display.setToolTip(expr)

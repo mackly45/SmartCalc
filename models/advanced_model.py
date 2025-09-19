@@ -145,26 +145,26 @@ class AdvancedCalculatorModel:
     def factor_expression(self, expression):
         """
         Factorise une expression mathématique.
-        
+
         Args:
             expression: L'expression à factoriser
-            
+
         Returns:
             L'expression factorisée ou None en cas d'erreur
         """
         try:
             # Importer sympy uniquement si nécessaire
             from sympy import symbols, factor, sympify, expand
-            
+
             # Crée un symbole pour la variable
-            x = symbols('x')
-            
+            x = symbols("x")
+
             # Convertit l'expression en une expression sympy
             expr = sympify(expression)
-            
+
             # Factorise l'expression
             factored = factor(expr)
-            
+
             # Vérifie si la factorisation a fonctionné
             if expand(factored) != expand(expr):
                 self.error_occurred.emit(
@@ -181,42 +181,42 @@ class AdvancedCalculatorModel:
     def analyze_expression(self, expression):
         """
         Analyse une expression mathématique (racines, dérivée, etc.)
-        
+
         Args:
             expression: L'expression à analyser
-            
+
         Returns:
             Un dictionnaire contenant l'analyse de l'expression
         """
         try:
             # Importer sympy uniquement si nécessaire
             from sympy import symbols, sympify, diff, solve, solveset, S
-            
+
             # Crée un symbole pour la variable
-            x = symbols('x')
-            
+            x = symbols("x")
+
             # Convertit l'expression en une expression sympy
             expr = sympify(expression)
-            
+
             # Calcule la dérivée
             derivative = diff(expr, x)
-            
+
             # Trouve les racines (solutions de expr = 0)
             roots = solve(expr, x, domain=S.Reals)
-            
+
             # Trouve les points critiques (solutions de derivative = 0)
             critical_points = solve(derivative, x, domain=S.Reals)
-            
+
             # Prépare le résultat
             result = {
-                'expression': str(expr),
-                'derivative': str(derivative),
-                'roots': [str(root) for root in roots],
-                'critical_points': [str(point) for point in critical_points]
+                "expression": str(expr),
+                "derivative": str(derivative),
+                "roots": [str(root) for root in roots],
+                "critical_points": [str(point) for point in critical_points],
             }
-            
+
             return result
-            
+
         except Exception as e:
             self.error_occurred.emit(f"Erreur d'analyse: {str(e)}")
             return None

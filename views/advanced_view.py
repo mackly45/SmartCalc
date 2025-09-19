@@ -30,7 +30,9 @@ class AdvancedView(QWidget):
     solve_clicked = pyqtSignal(str, str)  # equation, variable
     differentiate_clicked = pyqtSignal(str, str, int)  # expr, var, order
     # Utiliser 'object' pour permettre None (intégrale indéfinie)
-    integrate_clicked = pyqtSignal(str, str, object, object)  # expr, var, a|None, b|None
+    integrate_clicked = pyqtSignal(
+        str, str, object, object
+    )  # expr, var, a|None, b|None
     limit_clicked = pyqtSignal(str, str, str, str)  # expr, var, point, direction
     series_clicked = pyqtSignal(str, str, float, int)  # expr, var, point, order
 
@@ -495,5 +497,5 @@ class AdvancedView(QWidget):
         """Retourne à la vue précédente."""
         self.hide()
         parent = self.parentWidget()
-        if parent is not None and hasattr(parent, 'show'):
+        if parent is not None and hasattr(parent, "show"):
             parent.show()

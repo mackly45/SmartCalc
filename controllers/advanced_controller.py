@@ -34,10 +34,10 @@ class AdvancedController(QObject):
 
         # Option A: relier les signaux du contrôleur à la vue pour affichage auto
         self.calculation_complete.connect(
-            lambda expr, res: getattr(self.view, 'show_result', lambda *_: None)(res)
+            lambda expr, res: getattr(self.view, "show_result", lambda *_: None)(res)
         )
         self.error_occurred.connect(
-            lambda msg: getattr(self.view, 'show_error', lambda *_: None)(msg)
+            lambda msg: getattr(self.view, "show_error", lambda *_: None)(msg)
         )
         # graph_updated envoie un QPixmap; la vue trace déjà via Matplotlib.
         # On privilégie l'appel direct à view.plot_function dans plot_function().
@@ -48,7 +48,7 @@ class AdvancedController(QObject):
             result = self.model.evaluate_expression(expression, variables)
             self.calculation_complete.emit(expression, str(result))
             # Option B: appel direct de la vue
-            if hasattr(self.view, 'show_result'):
+            if hasattr(self.view, "show_result"):
                 self.view.show_result(str(result))
         except Exception as e:
             self.error_occurred.emit(f"Erreur de calcul: {str(e)}")
@@ -60,7 +60,7 @@ class AdvancedController(QObject):
             y = self.model.evaluate_expression(expression, {"x": x})
 
             # Option B: demander à la vue de tracer directement (matplotlib embarqué)
-            if hasattr(self.view, 'plot_function'):
+            if hasattr(self.view, "plot_function"):
                 try:
                     self.view.plot_function(x, y, expression)
                 except Exception:
@@ -93,7 +93,7 @@ class AdvancedController(QObject):
                 f"Résolution de {equation} pour {variable}", f"Solution: {solution}"
             )
             # Option B: appel direct
-            if hasattr(self.view, 'show_result'):
+            if hasattr(self.view, "show_result"):
                 self.view.show_result(f"Solution: {solution}")
         except Exception as e:
             self.error_occurred.emit(f"Erreur de résolution: {str(e)}")
@@ -107,7 +107,7 @@ class AdvancedController(QObject):
                 f"Résultat: {derivative}",
             )
             # Option B: appel direct spécifique
-            if hasattr(self.view, 'show_derivative_result'):
+            if hasattr(self.view, "show_derivative_result"):
                 self.view.show_derivative_result(str(derivative))
         except Exception as e:
             self.error_occurred.emit(f"Erreur de dérivation: {str(e)}")
@@ -125,7 +125,7 @@ class AdvancedController(QObject):
                     f"par rapport à {variable}",
                     f"Résultat: {result}",
                 )
-                if hasattr(self.view, 'show_integral_result'):
+                if hasattr(self.view, "show_integral_result"):
                     self.view.show_integral_result(str(result))
             else:
                 # Intégrale indéfinie
@@ -134,7 +134,7 @@ class AdvancedController(QObject):
                     f"Primitive de {expression} par rapport à {variable}",
                     f"Résultat: {result} + C",
                 )
-                if hasattr(self.view, 'show_integral_result'):
+                if hasattr(self.view, "show_integral_result"):
                     self.view.show_integral_result(f"{result} + C")
         except Exception as e:
             self.error_occurred.emit(f"Erreur d'intégration: {str(e)}")
@@ -148,7 +148,7 @@ class AdvancedController(QObject):
                 f"{point}{'⁻' if direction == '-' else ''}",
                 f"Résultat: {lim}",
             )
-            if hasattr(self.view, 'show_limit_result'):
+            if hasattr(self.view, "show_limit_result"):
                 self.view.show_limit_result(str(lim))
         except Exception as e:
             self.error_occurred.emit(f"Erreur de calcul de limite: {str(e)}")
@@ -162,7 +162,7 @@ class AdvancedController(QObject):
                 f"autour de {point} à l'ordre {order}",
                 f"Résultat: {series}",
             )
-            if hasattr(self.view, 'show_series_result'):
+            if hasattr(self.view, "show_series_result"):
                 self.view.show_series_result(str(series))
         except Exception as e:
             self.error_occurred.emit(f"Erreur de calcul de série: {str(e)}")
@@ -171,7 +171,7 @@ class AdvancedController(QObject):
     def initialize_ui(self):
         """Initialise l'onglet avancé (réinitialisation de l'état)."""
         # Si la vue possède des méthodes de reset, on peut les appeler ici.
-        if hasattr(self.view, 'clear'):
+        if hasattr(self.view, "clear"):
             try:
                 self.view.clear()
             except Exception:
