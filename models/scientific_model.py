@@ -1,5 +1,5 @@
 import math
-from typing import Dict, Union, Optional, List
+from typing import Dict, Optional, List
 
 
 class ScientificModel:
@@ -206,3 +206,9 @@ class ScientificModel:
         if k == 0 or k == n:
             return 1
         return self._fallback_comb(n - 1, k - 1) + self._fallback_comb(n - 1, k)
+
+
+# --- Compatibilité rétroactive pour l'ancienne classe attendue par certains tests/anciens imports ---
+class ScientificCalculatorModel(ScientificModel):
+    """Alias conservé pour compatibilité avec d'anciens imports/tests."""
+    pass
