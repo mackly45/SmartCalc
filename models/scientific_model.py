@@ -211,4 +211,5 @@ class ScientificModel:
 # --- Compatibilité rétroactive pour l'ancienne classe attendue par certains tests/anciens imports ---
 class ScientificCalculatorModel(ScientificModel):
     """Alias conservé pour compatibilité avec d'anciens imports/tests."""
+
     pass

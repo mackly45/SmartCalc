@@ -41,11 +41,15 @@ class ModernButton(QPushButton):
 
                 # Essayer d'abord avec .png, puis avec .jpg
                 try:
-                    self.button_icon = QIcon(f"assets/images/characters/{file_text}.png")
+                    self.button_icon = QIcon(
+                        f"assets/images/characters/{file_text}.png"
+                    )
                     if self.button_icon.isNull():
                         raise FileNotFoundError
                 except FileNotFoundError:
-                    self.button_icon = QIcon(f"assets/images/characters/{file_text}.jpg")
+                    self.button_icon = QIcon(
+                        f"assets/images/characters/{file_text}.jpg"
+                    )
                     if self.button_icon.isNull():
                         raise FileNotFoundError
             except Exception:
