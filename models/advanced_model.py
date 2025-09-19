@@ -1,5 +1,4 @@
 import numpy as np
-from typing import Dict, Any, Union, Optional
 from datetime import datetime
 
 
@@ -7,10 +6,17 @@ class AdvancedCalculatorModel:
     """Modèle pour la calculatrice avancée (graphiques, matrices, factorisation)"""
 
     # Signaux
-    plot_updated = lambda x, y: None  # x, y
-    matrix_operation_completed = lambda result_matrix: None  # result_matrix
-    factorization_completed = lambda result_expression: None  # result_expression
-    error_occurred = lambda error_message: None  # error_message
+    class _SignalStub:
+        def emit(self, *args, **kwargs):
+            # Intentionnel: stub de signal pour environnement sans Qt.
+            # Cette méthode ne fait rien par conception; les contrôleurs/visuels
+            # connectent des signaux réels lorsqu'un système de signaux est disponible.
+            pass
+
+    plot_updated = _SignalStub()  # doit supporter .emit(x, y)
+    matrix_operation_completed = _SignalStub()  # .emit(result_matrix)
+    factorization_completed = _SignalStub()  # .emit(result_expression)
+    error_occurred = _SignalStub()  # .emit(error_message)
 
     def __init__(self):
         super().__init__()
@@ -154,10 +160,7 @@ class AdvancedCalculatorModel:
         """
         try:
             # Importer sympy uniquement si nécessaire
-            from sympy import symbols, factor, sympify, expand
-
-            # Crée un symbole pour la variable
-            x = symbols("x")
+            from sympy import factor, sympify, expand
 
             # Convertit l'expression en une expression sympy
             expr = sympify(expression)
@@ -190,7 +193,7 @@ class AdvancedCalculatorModel:
         """
         try:
             # Importer sympy uniquement si nécessaire
-            from sympy import symbols, sympify, diff, solve, solveset, S
+            from sympy import symbols, sympify, diff, solve, S
 
             # Crée un symbole pour la variable
             x = symbols("x")

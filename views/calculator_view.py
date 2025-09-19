@@ -1,14 +1,18 @@
+from typing import Optional
 from PyQt6.QtWidgets import (
     QWidget,
     QVBoxLayout,
-    QHBoxLayout,
     QGridLayout,
     QPushButton,
     QLabel,
     QSizePolicy,
 )
-from PyQt6.QtCore import Qt, QSize, pyqtSignal
-from PyQt6.QtGui import QFont, QPainter, QPainterPath, QIcon, QResizeEvent, QColor
+from PyQt6.QtCore import Qt, pyqtSignal
+from PyQt6.QtGui import QPainter, QIcon, QColor
+
+
+# Constantes de style (éviter les duplications)
+OP_STYLE = "background-color: #f9e2af; color: #1e1e2e;"
 
 
 class ModernButton(QPushButton):
@@ -16,8 +20,9 @@ class ModernButton(QPushButton):
         super().__init__(text, parent)
         self.setCursor(Qt.CursorShape.PointingHandCursor)
         self.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
-        self.text = text
-        self.icon = None
+        # Ne pas masquer QPushButton.text() / .icon() avec des attributs
+        self.btn_text: str = text
+        self.button_icon: Optional[QIcon] = None
 
         # Charger l'image du personnage si c'est un chiffre ou un point
         if text.isdigit() or text in [".", "+", "-", "×", "÷", "=", "%", "C", "±"]:
@@ -36,16 +41,16 @@ class ModernButton(QPushButton):
 
                 # Essayer d'abord avec .png, puis avec .jpg
                 try:
-                    self.icon = QIcon(f"assets/images/characters/{file_text}.png")
-                    if self.icon.isNull():
+                    self.button_icon = QIcon(f"assets/images/characters/{file_text}.png")
+                    if self.button_icon.isNull():
                         raise FileNotFoundError
-                except:
-                    self.icon = QIcon(f"assets/images/characters/{file_text}.jpg")
-                    if self.icon.isNull():
+                except FileNotFoundError:
+                    self.button_icon = QIcon(f"assets/images/characters/{file_text}.jpg")
+                    if self.button_icon.isNull():
                         raise FileNotFoundError
-            except Exception as e:
+            except Exception:
                 print(f"Image non trouvée pour le caractère: {text}")
-                self.icon = None
+                self.button_icon = None
 
         self.update_style()
 
@@ -88,7 +93,7 @@ class ModernButton(QPushButton):
         painter.setRenderHint(QPainter.RenderHint.Antialiasing)
 
         # Dessiner l'icône si elle existe
-        if hasattr(self, "icon") and self.icon and not self.icon.isNull():
+        if self.button_icon is not None and not self.button_icon.isNull():
             try:
                 # Taille de l'icône (80% de la taille du bouton)
                 icon_size = int(min(self.width(), self.height()) * 0.8)
@@ -96,7 +101,7 @@ class ModernButton(QPushButton):
                 y = int((self.height() - icon_size) / 2)
 
                 # Créer une copie de l'icône avec opacité réduite
-                transparent_icon = self.icon.pixmap(icon_size, icon_size)
+                transparent_icon = self.button_icon.pixmap(icon_size, icon_size)
 
                 # Appliquer une opacité de 40%
                 painter.setOpacity(0.4)
@@ -118,7 +123,7 @@ class ModernButton(QPushButton):
         painter.setFont(font)
 
         # Configuration du texte
-        text = self.text
+        text = self.btn_text
         text_rect = self.rect()
 
         # Définir les couleurs en fonction du type de bouton
@@ -155,11 +160,11 @@ class ModernButton(QPushButton):
             (0, 1),
         ]:
             offset_rect = text_rect.translated(dx * 2, dy * 2)
-            painter.drawText(offset_rect, alignment, text)
+            painter.drawText(offset_rect, int(alignment), text)
 
         # Dessiner le texte principal avec la couleur appropriée
         painter.setPen(text_color)
-        painter.drawText(text_rect, alignment, text)
+        painter.drawText(text_rect, int(alignment), text)
 
 
 class CalculatorView(QWidget):
@@ -222,19 +227,19 @@ class CalculatorView(QWidget):
             ("C", 0, 0, 1, 1, "background-color: #f38ba8; color: #1e1e2e;"),
             ("±", 0, 1, 1, 1, "background-color: #313244;"),
             ("%", 0, 2, 1, 1, "background-color: #313244;"),
-            ("÷", 0, 3, 1, 1, "background-color: #f9e2af; color: #1e1e2e;"),
+            ("÷", 0, 3, 1, 1, OP_STYLE),
             ("7", 1, 0, 1, 1, None),
             ("8", 1, 1, 1, 1, None),
             ("9", 1, 2, 1, 1, None),
-            ("×", 1, 3, 1, 1, "background-color: #f9e2af; color: #1e1e2e;"),
+            ("×", 1, 3, 1, 1, OP_STYLE),
             ("4", 2, 0, 1, 1, None),
             ("5", 2, 1, 1, 1, None),
             ("6", 2, 2, 1, 1, None),
-            ("-", 2, 3, 1, 1, "background-color: #f9e2af; color: #1e1e2e;"),
+            ("-", 2, 3, 1, 1, OP_STYLE),
             ("1", 3, 0, 1, 1, None),
             ("2", 3, 1, 1, 1, None),
             ("3", 3, 2, 1, 1, None),
-            ("+", 3, 3, 1, 1, "background-color: #f9e2af; color: #1e1e2e;"),
+            ("+", 3, 3, 1, 1, OP_STYLE),
             ("0", 4, 0, 1, 2, "text-align: left; padding-left: 25px;"),
             (".", 4, 2, 1, 1, None),
             ("=", 4, 3, 1, 1, "background-color: #a6e3a1; color: #1e1e2e;"),
