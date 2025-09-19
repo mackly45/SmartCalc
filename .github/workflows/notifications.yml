@@ -6,12 +6,14 @@ on:
     types:
       - completed
 
+permissions:
+  contents: read
+  issues: write
+  pull-requests: write
+
 jobs:
   notify-failure:
-    if: >
-      github.event.workflow_run.conclusion == 'failure' &&
-      github.event.workflow_run.event == 'pull_request' &&
-      github.event.workflow_run.pull_requests[0]
+    if: github.event.workflow_run.conclusion == 'failure'
     runs-on: ubuntu-latest
     steps:
       - name: Add PR comment
@@ -19,20 +21,55 @@ jobs:
         with:
           script: |
             try {
+              const wr = context.payload.workflow_run;
+              // Ne commenter que pour les événements PR et si une PR est associée
+              if (wr.event !== 'pull_request' || !wr.pull_requests || wr.pull_requests.length === 0) {
+                core.info('Aucune PR associée à cette exécution ou évènement non-PR. Aucun commentaire ajouté.');
+                return;
+              }
+
+              const prRef = wr.pull_requests[0];
+              const owner = context.repo.owner;
+              const repo = context.repo.repo;
+
+              // Récupérer les infos complètes de la PR pour obtenir l'auteur
+              const prData = await github.rest.pulls.get({
+                owner,
+                repo,
+                pull_number: prRef.number,
+              });
+              const authorLogin = prData?.data?.user?.login || null;
+
+              const workflowName = wr.name || 'Workflow';
+              const runUrl = wr.html_url;
+              const headSha = wr.head_sha || context.sha;
+              const shortSha = headSha ? headSha.substring(0, 7) : 'unknown';
+              const commitUrl = `${context.serverUrl}/${owner}/${repo}/commit/${headSha}`;
+
+              // Lien direct vers le résumé des checks de la PR
+              const checksUrl = `${context.serverUrl}/${owner}/${repo}/pull/${prRef.number}/checks`;
+
+              const mention = authorLogin ? `@${authorLogin}` : '';
+
+              const body = [
+                `${mention} ❌ **Échec du build**`,
+                '',
+                `Le workflow **${workflowName}** a échoué pour cette PR.`,
+                '',
+                '**Détails :**',
+                `- Workflow : ${workflowName}`,
+                `- Exécution : ${runUrl}`,
+                `- Commit : [${shortSha}](${commitUrl})`,
+                `- Résumé des checks : ${checksUrl}`,
+                '',
+                'Consultez les logs et le résumé des checks pour plus de détails.'
+              ].join('\n');
+
               await github.rest.issues.createComment({
-                owner: context.repo.owner,
-                repo: context.repo.repo,
-                issue_number: context.payload.workflow_run.pull_requests[0].number,
-                body: `❌ **Échec du build**
-                
-                Le workflow **${{ github.event.workflow_run.name }}** a échoué pour cette PR.
-                
-                **Détails :**
-                - Workflow : ${{ github.event.workflow_run.name }}
-                - Exécution : [${{ github.run_id }}](${{ github.event.workflow_run.html_url }})
-                - Commit : [${context.sha.slice(0, 7)}](${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/commit/${context.sha})
-                
-                Consultez les logs pour plus de détails.`
+                owner,
+                repo,
+                issue_number: prRef.number,
+                body,
               });
             } catch (error) {
               console.error('Erreur lors de la création du commentaire :', error);
