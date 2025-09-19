@@ -4,14 +4,13 @@ from PyQt6.QtWidgets import (
     QHBoxLayout,
     QGridLayout,
     QPushButton,
-    QLabel,
     QSizePolicy,
     QComboBox,
     QGroupBox,
     QLineEdit,
 )
-from PyQt6.QtCore import Qt, QSize, pyqtSignal
-from PyQt6.QtGui import QFont, QIcon
+from PyQt6.QtCore import Qt, pyqtSignal
+# QtGui unused imports removed (QFont, QIcon)
 
 
 class ScientificView(QWidget):
