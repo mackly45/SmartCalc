@@ -9,9 +9,7 @@ __pycache__/
 *$py.class
 *.so
 .Python
-build/
 develop-eggs/
-dist/
 downloads/
 eggs/
 .eggs/
@@ -100,3 +98,54 @@ ehthumbs_vista.db
 .directory
 .Trash-*
 .nfs*
+
+# Fichiers de build PyInstaller
+build/
+dist/
+*.spec
+*.pyc
+__pycache__/
+
+# Fichiers de configuration locaux
+.env
+*.log
+
+# Fichiers système
+.DS_Store
+Thumbs.db
+
+# Environnements virtuels
+venv/
+env/
+
+# Fichiers d'IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Fichiers de cache
+.pytest_cache/
+.mypy_cache/
+
+# Fichiers de couverture de test
+htmlcov/
+.coverage
+
+# Fichiers de distribution
+*.egg-info/
+*.egg
+
+# Fichiers temporaires
+*.tmp
+*~
+
+# Fichiers de documentation
+site/
+
+# Fichiers de configuration utilisateur
+*.cfg
+
+# Fichiers de base de données locale
+*.db
+*.sqlite3
