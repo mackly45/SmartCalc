@@ -85,7 +85,6 @@ class DiscreteController(QObject):
         except Exception as e:
             self.view.show_error(str(e))
 
-
     def _on_powmod(self, a: int, e: int, m: int) -> None:
         try:
             result = self.model.pow_mod(a, e, m)
