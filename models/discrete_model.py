@@ -8,11 +8,13 @@ class DiscreteModel:
     Modèle pour les opérations de mathématiques discrètes.
     Implémente les opérations de base de la théorie des nombres et de la combinatoire.
     """
-    
+
     def factorial(self, n: int) -> int:
         """Retourne la factorielle de n (n!)."""
         if n < 0:
-            raise ValueError("La factorielle n'est définie que pour les entiers positifs")
+            raise ValueError(
+                "La factorielle n'est définie que pour les entiers positifs"
+            )
         if n == 0 or n == 1:
             return 1
         return n * self.factorial(n - 1)
@@ -53,7 +55,7 @@ class DiscreteModel:
             return True
         if n % 2 == 0 or n % 3 == 0:
             return False
-        
+
         i = 5
         w = 2
         while i * i <= n:
@@ -72,9 +74,9 @@ class DiscreteModel:
             raise ValueError("0 n'a pas de facteurs premiers")
         if n == 1:
             return {1: 1}
-            
+
         factors: Dict[int, int] = {}
-        
+
         # Traitement des facteurs 2
         count = 0
         while n % 2 == 0:
@@ -82,7 +84,7 @@ class DiscreteModel:
             n = n // 2
         if count > 0:
             factors[2] = count
-            
+
         # Vérification des nombres impairs jusqu'à sqrt(n)
         i = 3
         while i * i <= n:
@@ -93,11 +95,11 @@ class DiscreteModel:
             if count > 0:
                 factors[i] = count
             i += 2
-            
+
         # Si n est un nombre premier > 2
         if n > 2:
             factors[n] = 1
-            
+
         return factors
 
     def pow_mod(self, base: int, exponent: int, modulus: int) -> int:
@@ -106,16 +108,16 @@ class DiscreteModel:
             raise ValueError("Le module doit être strictement positif")
         if exponent < 0:
             raise ValueError("L'exposant doit être positif")
-            
+
         result = 1
         base = base % modulus
-        
+
         while exponent > 0:
             if exponent % 2 == 1:
                 result = (result * base) % modulus
             exponent = exponent >> 1
             base = (base * base) % modulus
-            
+
         return result
 
     def fibonacci(self, n: int) -> int:
@@ -126,7 +128,7 @@ class DiscreteModel:
             return 0
         if n == 1:
             return 1
-            
+
         a, b = 0, 1
         for _ in range(2, n + 1):
             a, b = b, a + b
