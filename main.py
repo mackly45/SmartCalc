@@ -18,18 +18,21 @@ from views.scientific_view import ScientificView
 from views.advanced_view import AdvancedView
 from views.conversion_view import ConversionView
 from views.currency_view import CurrencyView
+from views.discrete_view import DiscreteView
 
 from models.calculator_model import CalculatorModel
 from models.scientific_model import ScientificModel
 from models.advanced_model import AdvancedCalculatorModel
 from models.conversion_model import ConversionModel
 from models.currency_model import CurrencyModel
+from models.discrete_model import DiscreteModel
 
 from controllers.calculator_controller import CalculatorController
 from controllers.scientific_controller import ScientificController
 from controllers.advanced_controller import AdvancedController
 from controllers.conversion_controller import ConversionController
 from controllers.currency_controller import CurrencyController
+from controllers.discrete_controller import DiscreteController
 
 
 class MainWindow(QMainWindow):
@@ -46,6 +49,7 @@ class MainWindow(QMainWindow):
         self.advanced_model = AdvancedCalculatorModel()
         self.conversion_model = ConversionModel()
         self.currency_model = CurrencyModel()
+        self.discrete_model = DiscreteModel()
 
         # Création des vues
         self.calculator_view = CalculatorView()
@@ -53,6 +57,7 @@ class MainWindow(QMainWindow):
         self.advanced_view = AdvancedView()
         self.conversion_view = ConversionView()
         self.currency_view = CurrencyView()
+        self.discrete_view = DiscreteView()
 
         # Configuration de l'interface
         self.setup_ui()
@@ -72,6 +77,9 @@ class MainWindow(QMainWindow):
         )
         self.currency_controller = CurrencyController(
             self.currency_model, self.currency_view
+        )
+        self.discrete_controller = DiscreteController(
+            self.discrete_model, self.discrete_view
         )
 
         # Connexion des signaux
@@ -95,6 +103,7 @@ class MainWindow(QMainWindow):
         self.tab_widget.addTab(self.advanced_view, "Avancé")
         self.tab_widget.addTab(self.conversion_view, "Convertisseur")
         self.tab_widget.addTab(self.currency_view, "Devises")
+        self.tab_widget.addTab(self.discrete_view, "Discrète")
 
         # Ajout du widget d'onglets au layout principal
         layout.addWidget(self.tab_widget)
@@ -147,6 +156,9 @@ class MainWindow(QMainWindow):
             self.conversion_view.set_categories(categories)
             if categories:
                 self.conversion_controller.on_category_changed(categories[0])
+        elif current_tab == self.discrete_view:
+            # Rien de spécial à initialiser pour l'instant
+            pass
 
     def closeEvent(self, event):
         """Gère la fermeture de l'application"""
