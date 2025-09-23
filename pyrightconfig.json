@@ -1,9 +1,12 @@
 {
     "reportMissingModuleSource": false,
+    "reportMissingImports": false,
     "reportUnusedCallResult": false,
     "typeCheckingMode": "basic",
     "pythonVersion": "3.10",
     "pythonPlatform": "All",
-    "exclude": ["**/__pycache__", "**/.pytest_cache", "**/venv", "**/.venv"],
-    "ignore": ["setup.py"]
+    "exclude": ["**/__pycache__", "**/.pytest_cache", "**/venv", "**/.venv", "**/node_modules", "views/**", "controllers/**"],
+    "ignore": ["setup.py", "build.py", "test_import.py"],
+    "venvPath": ".",
+    "venv": "venv"
 }

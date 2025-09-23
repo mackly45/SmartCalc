@@ -1,9 +1,12 @@
-name: Deploy GitHub Pages
+name: Deploy GitHub Pages (Disabled for Web App)
 
 on:
   push:
-    branches: [ "main" ]
+    branches: [ "disabled" ]  # Changed from main to disabled
   workflow_dispatch:
+
+# This workflow is disabled for the web version of SmartCalc
+# The app is deployed on Vercel instead
 
 permissions:
   contents: read
