@@ -1,0 +1,338 @@
+/* ==================== STYLES GLOBAUX ==================== */
+:root {
+    --primary-color: #0d6efd;
+    --secondary-color: #6c757d;
+    --success-color: #198754;
+    --danger-color: #dc3545;
+    --warning-color: #ffc107;
+    --info-color: #0dcaf0;
+    --light-color: #f8f9fa;
+    --dark-color: #212529;
+    
+    --bg-dark: #1a1a1a;
+    --bg-secondary: #2d3748;
+    --bg-card: #374151;
+    --text-light: #f7fafc;
+    --text-muted: #a0aec0;
+    
+    --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+    --border-radius: 8px;
+}
+
+body {
+    background-color: var(--bg-dark) !important;
+    color: var(--text-light) !important;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}
+
+.card {
+    border: none;
+    border-radius: var(--border-radius);
+    box-shadow: var(--shadow);
+}
+
+.card.bg-secondary {
+    background-color: var(--bg-secondary) !important;
+}
+
+.card.bg-dark {
+    background-color: var(--bg-card) !important;
+}
+
+/* ==================== NAVIGATION ==================== */
+.navbar {
+    box-shadow: var(--shadow);
+}
+
+.navbar-brand {
+    font-weight: bold;
+    font-size: 1.5rem;
+}
+
+/* ==================== CALCULATRICE ==================== */
+.calculator-display {
+    background-color: var(--bg-card);
+    border-radius: var(--border-radius);
+    padding: 1rem;
+    margin-bottom: 1rem;
+    border: 2px solid var(--secondary-color);
+}
+
+.expression-display {
+    font-size: 0.9rem;
+    min-height: 1.5rem;
+    color: var(--text-muted);
+    text-align: right;
+}
+
+.result-display {
+    font-size: 2rem;
+    font-weight: bold;
+    text-align: right;
+    color: var(--text-light);
+    min-height: 3rem;
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    word-break: break-all;
+}
+
+.calc-btn {
+    height: 60px;
+    font-size: 1.2rem;
+    font-weight: bold;
+    border-radius: var(--border-radius);
+    transition: all 0.2s ease;
+}
+
+.calc-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow);
+}
+
+.calc-btn:active {
+    transform: translateY(0);
+}
+
+/* ==================== CALCULATRICE SCIENTIFIQUE ==================== */
+.scientific-input {
+    background-color: var(--bg-card) !important;
+    color: var(--text-light) !important;
+    border: 1px solid var(--secondary-color) !important;
+    font-family: 'Courier New', monospace;
+    font-size: 1.1rem;
+    resize: vertical;
+}
+
+.scientific-input:focus {
+    background-color: var(--bg-card) !important;
+    color: var(--text-light) !important;
+    border-color: var(--primary-color) !important;
+    box-shadow: 0 0 0 0.2rem rgba(13, 110, 253, 0.25) !important;
+}
+
+.func-btn, .insert-btn {
+    height: 45px;
+    font-size: 0.9rem;
+    border-radius: var(--border-radius);
+    transition: all 0.2s ease;
+}
+
+.func-btn:hover, .insert-btn:hover {
+    transform: translateY(-1px);
+}
+
+/* ==================== CONVERTISSEUR ==================== */
+.form-select, .form-control {
+    background-color: var(--bg-card) !important;
+    color: var(--text-light) !important;
+    border: 1px solid var(--secondary-color) !important;
+}
+
+.form-select:focus, .form-control:focus {
+    background-color: var(--bg-card) !important;
+    color: var(--text-light) !important;
+    border-color: var(--primary-color) !important;
+    box-shadow: 0 0 0 0.2rem rgba(13, 110, 253, 0.25) !important;
+}
+
+.form-select option {
+    background-color: var(--bg-card) !important;
+    color: var(--text-light) !important;
+}
+
+/* ==================== HISTORIQUE ==================== */
+.history-container {
+    max-height: 400px;
+    overflow-y: auto;
+}
+
+.history-item {
+    background-color: var(--bg-card);
+    border-radius: var(--border-radius);
+    padding: 0.75rem;
+    margin-bottom: 0.5rem;
+    border-left: 3px solid var(--primary-color);
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.history-item:hover {
+    background-color: var(--bg-dark);
+    transform: translateX(5px);
+}
+
+.history-expression {
+    font-family: 'Courier New', monospace;
+    font-size: 0.9rem;
+    color: var(--text-muted);
+}
+
+.history-result {
+    font-weight: bold;
+    font-size: 1.1rem;
+    color: var(--success-color);
+}
+
+.history-timestamp {
+    font-size: 0.75rem;
+    color: var(--text-muted);
+}
+
+/* ==================== ANIMATIONS ==================== */
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.fade-in {
+    animation: fadeIn 0.3s ease;
+}
+
+@keyframes pulse {
+    0% {
+        transform: scale(1);
+    }
+    50% {
+        transform: scale(1.05);
+    }
+    100% {
+        transform: scale(1);
+    }
+}
+
+.pulse {
+    animation: pulse 0.3s ease;
+}
+
+/* ==================== ALERTS ==================== */
+.alert {
+    border: none;
+    border-radius: var(--border-radius);
+    margin-bottom: 1rem;
+}
+
+.alert-error {
+    background-color: rgba(220, 53, 69, 0.1);
+    color: #f5c6cb;
+    border-left: 3px solid var(--danger-color);
+}
+
+.alert-success {
+    background-color: rgba(25, 135, 84, 0.1);
+    color: #d1e7dd;
+    border-left: 3px solid var(--success-color);
+}
+
+/* ==================== TABLEAUX ==================== */
+.table-dark {
+    --bs-table-bg: var(--bg-card);
+    --bs-table-border-color: var(--secondary-color);
+}
+
+.table-dark th, .table-dark td {
+    border-color: var(--secondary-color);
+}
+
+/* ==================== BOUTONS RADIO ==================== */
+.btn-check:checked + .btn-outline-info {
+    background-color: var(--info-color);
+    border-color: var(--info-color);
+    color: var(--dark-color);
+}
+
+/* ==================== SCROLLBAR PERSONNALISÉ ==================== */
+::-webkit-scrollbar {
+    width: 8px;
+}
+
+::-webkit-scrollbar-track {
+    background: var(--bg-secondary);
+    border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb {
+    background: var(--secondary-color);
+    border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: var(--primary-color);
+}
+
+/* ==================== RESPONSIVE ==================== */
+@media (max-width: 768px) {
+    .result-display {
+        font-size: 1.5rem;
+    }
+    
+    .calc-btn {
+        height: 50px;
+        font-size: 1rem;
+    }
+    
+    .func-btn, .insert-btn {
+        height: 40px;
+        font-size: 0.8rem;
+    }
+    
+    .scientific-input {
+        font-size: 1rem;
+    }
+}
+
+@media (max-width: 576px) {
+    .result-display {
+        font-size: 1.2rem;
+    }
+    
+    .calc-btn {
+        height: 45px;
+        font-size: 0.9rem;
+    }
+    
+    .func-btn, .insert-btn {
+        height: 35px;
+        font-size: 0.7rem;
+    }
+}
+
+/* ==================== UTILITAIRES ==================== */
+.text-monospace {
+    font-family: 'Courier New', monospace;
+}
+
+.cursor-pointer {
+    cursor: pointer;
+}
+
+.user-select-none {
+    user-select: none;
+}
+
+.transition-all {
+    transition: all 0.2s ease;
+}
+
+/* ==================== LOADING SPINNER ==================== */
+.loading-spinner {
+    display: inline-block;
+    width: 20px;
+    height: 20px;
+    border: 3px solid rgba(255, 255, 255, 0.3);
+    border-radius: 50%;
+    border-top-color: #fff;
+    animation: spin 1s ease-in-out infinite;
+}
+
+@keyframes spin {
+    to {
+        transform: rotate(360deg);
+    }
+}
