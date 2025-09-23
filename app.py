@@ -5,7 +5,6 @@ from flask import Flask, render_template, request, jsonify
 import os
 import sys
 import math
-import json
 
 # Ajouter le répertoire courant au PATH pour importer les modèles
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
